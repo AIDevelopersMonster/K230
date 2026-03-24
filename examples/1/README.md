@@ -1,17 +1,11 @@
 # Example 1
 
-This is the first example folder.
-
-You can place your test scripts and experiments for K230 here.
-
-## Purpose
-
-- Test basic functionality
-- Try MicroPython code
-- Store small experiments
-
-## Example
+## 🔢 Числа и арифметика
 
 ```python
-print("Example 1 running")
-```
+print(3)          # 3
+print(1 + 1)      # 2
+print(8 - 1)      # 7
+print(10 * 2)     # 20
+print(35 / 5)     # 7.0
+
