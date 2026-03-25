@@ -341,5 +341,5 @@ print(center_x, center_y)
 
 ## Связанные файлы
 
-- `repl-updated.md` — инструкция по подключению к REPL
+- `repl.md` — инструкция по подключению к REPL
 - `python-course-for-k230-users.md` — вводный курс по Python
