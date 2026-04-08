@@ -2,19 +2,23 @@
 
 from ybUtils.YbKey import YbKey
 from machine import Pin
+from ybUtils.YbRGB import YbRGB
 import time
 
 key = YbKey()
 
 # Указываем пин светодиода (можно изменить под свою плату)
-led = Pin(10, Pin.OUT)
+rgb = YbRGB()
 
 print("Кнопка управляет светодиодом")
 
 while True:
     if key.is_pressed():
-        led.value(1)  # включить LED
+        rgb.show_rgb((82, 139, 255)) # включить LED
+        
+        
     else:
-        led.value(0)  # выключить LED
+        rgb.show_rgb((0, 0, 0))  # выключить LED
+       
 
     time.sleep_ms(50)
