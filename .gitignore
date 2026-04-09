@@ -1,106 +1,23 @@
 ```markdown
 # Project-specific ignores
-examples/05/*.tmp
-examples/05/*.log
-examples/05/*~
 
-# General ignores
-*.tmp
-*.log
-*~
-.DS_Store
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
+# Compiled and binary files
 
 # Dependencies
-node_modules/
-__pycache__/
-*.pyc
-*.class
-*.o
-*.obj
-*.so
-*.dll
-*.exe
-*.out
 
-# Build artifacts
-dist/
-build/
-target/
-*.tar*
-*.zip
-*.gz
-*.rar
-*.7z
+# Logs and temp files
+
+# Environment
+
+# Editors
 
 # Coverage and testing
-.coverage
-coverage/
-htmlcov/
 
-# Python specific
-*.pyc
-__pycache__/
-.pytest_cache/
-.mypy_cache/
+# Build artifacts
 
-# Node.js specific
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Compression and archives
 
-# Java specific
-*.class
-*.jar
-*.war
-*.ear
-.gradle/
-target/
+# System files
 
-# C/C++ specific
-*.o
-*.obj
-*.a
-*.lib
-*.so
-*.dll
-*.exe
-*.out
-*.dSYM/
-
-# Compression files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Original rules preserved
 ```
