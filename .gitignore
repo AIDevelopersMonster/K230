@@ -1,23 +1,38 @@
-```markdown
-# Project-specific ignores
+```
+# Compiled Python files
+*.pyc
+__pycache__/
 
-# Compiled and binary files
+# Virtual environments
+.venv/
+venv/
+env/
 
-# Dependencies
+# Logs
+*.log
 
-# Logs and temp files
+# Temporary files
+*.tmp
+*.swp
 
-# Environment
+# Environment files
+.env
+.env.local
+*.env.*
 
 # Editors
+.vscode/
+.idea/
 
-# Coverage and testing
+# Dependencies cache
+.mypy_cache/
+.pytest_cache/
+coverage/
+htmlcov/
+.coverage
 
 # Build artifacts
-
-# Compression and archives
-
-# System files
-
-# Original rules preserved
+dist/
+build/
+target/
 ```

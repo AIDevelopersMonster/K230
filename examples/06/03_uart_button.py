@@ -1,15 +1,40 @@
-# Пример 3. Отправка состояния кнопки через UART
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230 
+#
+# Описание:
+# Отправляет состояние кнопки через UART при нажатии
+# Демонстрирует совместную работу кнопки и UART интерфейса
+#
+# Используется:
+# - YbUart / YbKey
+#
+# ============================================
 
-from ybUtils.YbUart import YbUart
-from ybUtils.YbKey import YbKey
-import time
+from ybUtils.YbUart import YbUart  # Импорт класса для работы с UART
+from ybUtils.YbKey import YbKey    # Импорт класса для работы с кнопкой
+import time  # Импорт модуля времени для задержек
 
+# Создаем объект UART с скоростью передачи 115200 бит/сек
 uart = YbUart(baudrate=115200)
+
+# Создаем объект для работы с кнопкой
 key = YbKey()
 
+# Бесконечный цикл для постоянного мониторинга кнопки
 while True:
+    # Проверяем, нажата ли кнопка
     if key.is_pressed():
+        # Если кнопка нажата - отправляем сообщение через UART
         uart.send("BUTTON: PRESSED\n")
+        
+        # Выводим сообщение на экран для отладки
         print("Кнопка нажата")
+        
+        # Задержка 300 мс для защиты от дребезга контактов кнопки
         time.sleep_ms(300)
+    
+    # Небольшая задержка 50 мс между проверками состояния кнопки
     time.sleep_ms(50)
