@@ -32,15 +32,15 @@ import time
 
 # Создаём объект для настройки пинов (FPIOA - Flexible Programmable Input/Output Array)
 fpioa = FPIOA()
-
-# Создаём объект I2C с номером шины 1
-i2c = I2C(1)
-
 # Настраиваем пины для работы I2C:
 # Пин 34 назначаем как SCL (тактовый сигнал)
 # Пин 35 назначаем как SDA (линия данных)
 fpioa.set_function(34, FPIOA.IIC1_SCL)
 fpioa.set_function(35, FPIOA.IIC1_SDA)
+# Создаём объект I2C с номером шины 1
+i2c = I2C(1)
+
+
 
 # Создаём объект OLED дисплея:
 # 128 - ширина экрана в пикселях
