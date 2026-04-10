@@ -44,7 +44,7 @@ last_button = "OFF"
 def draw_header(title):
     oled.fill(0)
     oled.text(title, 0, 0)
-    oled.hline(0, 9, 128, 1)
+
 
 
 def draw_main():
