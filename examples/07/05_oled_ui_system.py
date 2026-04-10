@@ -19,11 +19,13 @@ import time
 
 # ---------- Инициализация ----------
 fpioa = FPIOA()
-i2c = I2C(1)
-
 # Настройка I2C1 для OLED
 fpioa.set_function(34, FPIOA.IIC1_SCL, oe=1, ie=1, pu=1, st=1, ds=15)
 fpioa.set_function(35, FPIOA.IIC1_SDA, oe=1, ie=1, pu=1, st=1, ds=15)
+
+
+i2c = I2C(1)
+
 
 oled = SSD1306_I2C(128, 32, i2c)
 key = YbKey()
