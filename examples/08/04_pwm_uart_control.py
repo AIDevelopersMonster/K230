@@ -7,7 +7,7 @@ import time
 fpioa = FPIOA()
 fpioa.set_function(42, fpioa.PWM0)
 
-pwm = PWM(0, 1000, 50, enable=True)
+pwm = PWM(42,freq=1000,duty=50)
 uart = YbUart(baudrate=115200)
 
 while True:
