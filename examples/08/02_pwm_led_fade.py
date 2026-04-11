@@ -6,7 +6,7 @@ import time
 fpioa = FPIOA()
 fpioa.set_function(42, fpioa.PWM0)
 
-pwm = PWM(0, 1000, 0, enable=True)
+pwm = PWM(42,freq=1000,duty=50)
 
 while True:
     for duty in range(0, 100, 5):
