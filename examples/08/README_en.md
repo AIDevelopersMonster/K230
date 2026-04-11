@@ -84,7 +84,7 @@ Imagine you quickly turn a light on and off. If you keep it on for 50% of the ti
 ## 🔗 Useful Links
 
 - GitHub Repository: https://github.com/AIDevelopersMonster/K230
-- K230 Documentation: https://wiki.kendryte.com/
+- K230 Documentation: 
 
 ---
 *Author: AIDevelopersMonster*
