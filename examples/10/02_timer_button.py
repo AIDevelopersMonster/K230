@@ -17,7 +17,7 @@
 
 from machine import Timer  # Импорт класса Timer для работы с таймерами
 from ybUtils.YbKey import YbKey  # Импорт класса YbKey для работы с кнопкой
-
+import time  # Импорт модуля time для задержек
 # Создаём объект для работы с кнопкой на плате K230
 key = YbKey()
 
