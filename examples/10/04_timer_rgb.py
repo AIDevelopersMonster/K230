@@ -17,7 +17,7 @@
 
 from machine import Timer  # Импорт класса Timer для работы с таймерами
 from ybUtils.YbRGB import YbRGB  # Импорт класса YbRGB для управления RGB светодиодом
-
+import time  # Импорт модуля time для задержек
 # Создаём объект для работы с RGB светодиодом
 rgb = YbRGB()
 # Список цветов для переключения (R, G, B)
@@ -43,3 +43,5 @@ timer = Timer(-1)
 # Запускаем периодический таймер с частотой 1 Гц (1 раз в секунду)
 # Каждую секунду будет меняться цвет RGB светодиода
 timer.init(freq=1, mode=Timer.PERIODIC, callback=cb)
+while True:
+    time.sleep(1)
