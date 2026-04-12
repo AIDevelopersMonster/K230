@@ -2,32 +2,53 @@
 # K230 Example
 # Автор: AIDevelopersMonster
 # Плата: Yahboom K230
-# GitHub https://github.com/AIDevelopersMonster/K230
+# GitHub https://github.com/AIDevelopersMonster/K230      
+#
+# Описание:
+# Базовый пример работы с таймером (one-shot и periodic режимы)
+# Показывает как создавать таймер и использовать его для выполнения
+# кода через определённый интервал времени
+#
+# Используется:
+# - Timer
+#
 # ============================================
 
 # Пример 1. Базовый Timer (one-shot + periodic)
 
-from machine import Timer
-import time
+from machine import Timer  # Импорт класса Timer для работы с таймерами
+import time  # Импорт модуля time для задержек
 
-# Однократный callback
+# Функция обратного вызова для однократного выполнения
+# Таймер вызовет эту функцию один раз и остановится
 def once_cb(t):
-    print("One-shot timer triggered")
+    """Обработчик для однократного таймера"""
+    print("One-shot timer triggered")  # Вывод сообщения о срабатывании
 
-# Периодический callback
+# Функция обратного вызова для периодического выполнения
+# Таймер будет вызывать эту функцию снова и снова через равные интервалы
 def periodic_cb(t):
-    print("Periodic timer triggered")
+    """Обработчик для периодического таймера"""
+    print("Periodic timer triggered")  # Вывод сообщения о срабатывании
 
 # Создаём виртуальный таймер
+# Timer(-1) означает использование программного (виртуального) таймера
 timer = Timer(-1)
 
-# One-shot (100 мс)
+# Запуск однократного таймера на 100 миллисекунд
+# period=100 - интервал в миллисекундах
+# mode=Timer.ONE_SHOT - таймер сработает только один раз
+# callback=once_cb - функция, которая будет вызвана при срабатывании
 timer.init(period=100, mode=Timer.ONE_SHOT, callback=once_cb)
-time.sleep(0.2)
+time.sleep(0.2)  # Ждём 0.2 секунды, чтобы таймер успел сработать
 
-# Periodic (1 Гц)
+# Запуск периодического таймера с частотой 1 Гц (1 раз в секунду)
+# freq=1 - частота в Герцах (сколько раз в секунду срабатывать)
+# mode=Timer.PERIODIC - таймер будет срабатывать постоянно
+# callback=periodic_cb - функция для вызова при каждом срабатывании
 timer.init(freq=1, mode=Timer.PERIODIC, callback=periodic_cb)
-time.sleep(3)
+time.sleep(3)  # Ждём 3 секунды, чтобы увидеть несколько срабатываний
 
+# Останавливаем таймер и освобождаем ресурсы
 timer.deinit()
-print("Timer stopped")
+print("Timer stopped")  # Сообщение об остановке таймера

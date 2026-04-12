@@ -1,16 +1,42 @@
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230      
+#
+# Описание:
+# Пример использования таймера для периодической проверки UART данных
+# Таймер 10 раз в секунду проверяет, пришли ли данные через UART интерфейс
+#
+# Используется:
+# - Timer / YbUart
+#
+# ============================================
+
 # Пример 3. Timer + UART
 
-from machine import Timer
-from ybUtils.YbUart import YbUart
+from machine import Timer  # Импорт класса Timer для работы с таймерами
+from ybUtils.YbUart import YbUart  # Импорт класса YbUart для работы с UART
 
+# Создаём объект для работы с UART на скорости 115200 бод
 uart = YbUart(115200)
 
 
 def cb(t):
+    """
+    Функция обратного вызова, которая вызывается таймером
+    
+    Аргумент t - объект таймера, который вызвал эту функцию
+    """
+    # Читаем данные из UART порта
     data = uart.read()
+    # Если данные получены (не пустые), выводим их
     if data:
-        print("UART (timer):", data.decode())
+        print("UART (timer):", data.decode())  # Декодируем байты в строку и выводим
 
 
+# Создаём виртуальный таймер
 timer = Timer(-1)
+# Запускаем периодический таймер с частотой 10 Гц (10 раз в секунду)
+# Каждые 100мс будет вызываться функция cb для проверки UART данных
 timer.init(freq=10, mode=Timer.PERIODIC, callback=cb)
