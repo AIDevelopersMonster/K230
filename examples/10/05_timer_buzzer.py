@@ -1,14 +1,38 @@
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230      
+#
+# Описание:
+# Пример использования таймера для управления зуммером (пищалкой)
+# Таймер 2 раза в секунду издаёт короткий звуковой сигнал
+#
+# Используется:
+# - Timer / YbBuzzer
+#
+# ============================================
+
 # Пример 5. Timer + звук
 
-from machine import Timer
-from ybUtils.YbBuzzer import YbBuzzer
+from machine import Timer  # Импорт класса Timer для работы с таймерами
+from ybUtils.YbBuzzer import YbBuzzer  # Импорт класса YbBuzzer для управления зуммером
 
+# Создаём объект для работы с зуммером (звуковым излучателем)
 buzzer = YbBuzzer()
 
 
 def cb(t):
-    buzzer.beep()
+    """
+    Функция обратного вызова, которая вызывается таймером
+    
+    Аргумент t - объект таймера, который вызвал эту функцию
+    """
+    buzzer.beep()  # Издаём короткий звуковой сигнал
 
 
+# Создаём виртуальный таймер
 timer = Timer(-1)
+# Запускаем периодический таймер с частотой 2 Гц (2 раза в секунду)
+# Каждые 500мс будет издаваться звуковой сигнал
 timer.init(freq=2, mode=Timer.PERIODIC, callback=cb)
