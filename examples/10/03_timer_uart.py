@@ -17,7 +17,7 @@
 
 from machine import Timer  # Импорт класса Timer для работы с таймерами
 from ybUtils.YbUart import YbUart  # Импорт класса YbUart для работы с UART
-
+import time  # Импорт модуля time для задержек
 # Создаём объект для работы с UART на скорости 115200 бод
 uart = YbUart(115200)
 
@@ -30,6 +30,7 @@ def cb(t):
     """
     # Читаем данные из UART порта
     data = uart.read()
+    
     # Если данные получены (не пустые), выводим их
     if data:
         print("UART (timer):", data.decode())  # Декодируем байты в строку и выводим
@@ -40,3 +41,6 @@ timer = Timer(-1)
 # Запускаем периодический таймер с частотой 10 Гц (10 раз в секунду)
 # Каждые 100мс будет вызываться функция cb для проверки UART данных
 timer.init(freq=10, mode=Timer.PERIODIC, callback=cb)
+
+while True:
+    time.sleep(1)
