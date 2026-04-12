@@ -17,7 +17,7 @@
 
 from machine import Timer  # Импорт класса Timer для работы с таймерами
 from ybUtils.YbBuzzer import YbBuzzer  # Импорт класса YbBuzzer для управления зуммером
-
+import time  # Импорт модуля time для задержек
 # Создаём объект для работы с зуммером (звуковым излучателем)
 buzzer = YbBuzzer()
 
@@ -36,3 +36,6 @@ timer = Timer(-1)
 # Запускаем периодический таймер с частотой 2 Гц (2 раза в секунду)
 # Каждые 500мс будет издаваться звуковой сигнал
 timer.init(freq=2, mode=Timer.PERIODIC, callback=cb)
+
+while True:
+    time.sleep(1)
