@@ -35,6 +35,8 @@ def cb(t):
 
 # Создаём виртуальный таймер
 timer = Timer(-1)
+while True:
+    time.sleep(1)
 # Запускаем периодический таймер с частотой 5 Гц (5 раз в секунду)
 # Каждые 200мс будет вызываться функция cb для проверки кнопки
 timer.init(freq=5, mode=Timer.PERIODIC, callback=cb)
