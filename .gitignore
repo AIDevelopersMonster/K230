@@ -3,37 +3,35 @@
 *.pyc
 __pycache__/
 
-# Dependencies
-.venv/
-venv/
-pip-log.txt
-pip-selfcheck.json
-
 # Logs
 *.log
 
-# Environment variables
+# Environment files
 .env
 .env.local
 *.env.*
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Build/dist directories
+dist/
+build/
+target/
 
 # Coverage reports
 .coverage
 coverage/
 htmlcov/
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Build artifacts
-dist/
-build/
-*.egg-info/
+# Dependencies
+node_modules/
+venv/
+.venv/
+.mypy_cache/
+.pytest_cache/
 ```
