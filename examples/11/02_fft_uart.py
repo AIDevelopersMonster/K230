@@ -19,6 +19,7 @@
 # Пример 2: FFT анализ данных, полученных через UART
 # Этот скрипт показывает, как обрабатывать внешние данные, поступающие через последовательный порт
 # ============================================
+## ============================================
 # 🎯 K230 FFT Learning Example
 # Автор: AIDevelopersMonster
 # Плата: Yahboom K230 (Kendryte K230)
@@ -396,6 +397,27 @@ def is_power_of_two(n):
     """
     return n > 0 and (n & (n - 1)) == 0
 
+def print_fft_ascii(ampl, max_height=20):
+    """
+    ASCII-визуализация спектра FFT
+    ampl — список амплитуд
+    max_height — максимальная высота столбца
+    """
+    # Берём только полезную часть (0..N/2)
+    half = len(ampl) // 2
+    data = ampl[:half]
+
+    # Нормализация
+    max_val = max(data) if max(data) != 0 else 1
+
+    print("\n=== FFT Spectrum ===")
+    
+    for i, val in enumerate(data):
+        # масштабирование
+        bar_len = int((val / max_val) * max_height)
+        bar = "█" * bar_len
+        
+        print(f"{i:02d} | {bar}")
 
 # ♾️ Главный цикл обработки данных
 while True:
@@ -479,6 +501,7 @@ while True:
                 print("Peak index:", max_index)
                 print("Amplitude:", max_val)
                 
+                print_fft_ascii(ampl)
                 # 💡 Дополнительно: расчёт частоты в Гц (если известна Fs)
                 # Fs = 1000  # Пример: 1000 отсчётов/сек
                 # freq_hz = max_index * (Fs / 64)
