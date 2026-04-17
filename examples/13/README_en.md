@@ -90,7 +90,7 @@ decrypted = cipher.decrypt(encrypted)
 
 - [MicroPython ucryptolib Documentation](https://docs.micropython.org/)
 - [Wikipedia: AES](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard)
-- [NIST AES Standard](https://csrc.nist.gov/projects/cryptographic-standards-and-guidelines/archived-crypto-projects/fips-197)
+
 
 ---
 
