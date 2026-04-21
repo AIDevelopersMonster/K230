@@ -1,25 +1,50 @@
 # ============================================
 # K230 Example
-# Camera preview basic
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                 
+#
+# Описание:
+# Базовый пример вывода изображения с камеры на дисплей
+# Скрипт захватывает кадры с камеры и отображает их на экране
+#
+# Используется:
+# - Sensor (камера)
+# - Display (дисплей ST7701)
+# - MediaManager (управление медиа)
+#
 # ============================================
 
-import uos as os
-import time
-from media.sensor import *
-from media.display import *
-from media.media import *
+import uos as os  # Модуль операционной системы для обработки прерываний
+import time  # Модуль времени (в данном примере не используется, но может пригодиться)
+from media.sensor import *  # Импорт функций для работы с камерой
+from media.display import *  # Импорт функций для работы с дисплеем
+from media.media import *  # Импорт функций для управления медиа-ресурсами
 
+# Инициализация объекта камеры
 sensor = Sensor()
+# Сброс настроек камеры к значениям по умолчанию
 sensor.reset()
+# Установка разрешения изображения: 640x480 пикселей для канала камеры 1
 sensor.set_framesize(width=640, height=480, chn=CAM_CHN_ID_1)
+# Установка формата пикселей: RGB565 (16-битный цвет) для канала 1
 sensor.set_pixformat(Sensor.RGB565, chn=CAM_CHN_ID_1)
 
+# Инициализация дисплея ST7701 с разрешением 640x480
+# to_ide=True позволяет передавать изображение в IDE для отладки
 Display.init(Display.ST7701, width=640, height=480, to_ide=True)
+# Инициализация менеджера медиа-ресурсов (необходимо для корректной работы)
 MediaManager.init()
 
+# Запуск камеры (начало захвата изображения)
 sensor.run()
 
+# Основной бесконечный цикл программы
 while True:
+    # Проверка точки выхода (для корректного завершения программы через IDE)
     os.exitpoint()
+    # Захват одного кадра с камеры (канал 1)
+    # Возвращает объект изображения
     img = sensor.snapshot(chn=CAM_CHN_ID_1)
+    # Отображение захваченного изображения на дисплее
     Display.show_image(img)
