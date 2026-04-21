@@ -1,75 +1,73 @@
 # ============================================
 # K230 Example
-# Автор: AIDevelopersMonster
-# Плата: Yahboom K230
-# GitHub https://github.com/AIDevelopersMonster/K230             
-#
-# Описание:
-# Базовый пример работы с сенсорным экраном (Touch Display).
-# Скрипт отображает круг в точке касания экрана.
-# При касании выводятся координаты в консоль.
-#
-# Используется:
-# - Display (экран ST7701)
-# - Touch (сенсорный ввод)
-# - MediaManager (управление медиа)
-#
+# Базовый пример Touch Display
+# Исправленная версия для Yahboom K230 / CanMV
 # ============================================
 
-# Импорт необходимых библиотек
-# media.display - управление дисплеем
-# media.media - инициализация медиа-менеджера
-# media.touch - работа с сенсорным экраном
-# image - создание и рисование изображений
-# time - задержки в цикле
+import time
+import os
+import image
+
 from media.display import *
 from media.media import *
-from media.touch import *
-import image, time
+from machine import TOUCH
 
-# Инициализация дисплея
-# Display.ST7701 - тип контроллера экрана
-# width=640, height=480 - разрешение экрана
-# osd_num=1 - количество слоёв OSD (On-Screen Display)
-# to_ide=True - передача изображения в IDE для отладки
-Display.init(Display.ST7701, width=640, height=480, osd_num=1, to_ide=True)
+DISPLAY_WIDTH = 640
+DISPLAY_HEIGHT = 480
 
-# Инициализация медиа-менеджера (необходимо для работы с медиа)
-MediaManager.init()
+# Инициализация touch-контроллера
+# Для Yahboom K230 используется machine.TOUCH(0)
+tp = TOUCH(0)
 
-# Инициализация сенсорного экрана
-Touch.init()
 
-# Создаём объект изображения размером 640x480 пикселей
-# Формат цвета RGB565 - 16 бит на пиксель (экономия памяти)
-img = image.Image(640, 480, image.RGB565)
+def main():
+    print("touch basic demo")
 
-# Основной бесконечный цикл программы
-while True:
-    # Очищаем изображение (заливаем чёрным цветом)
-    img.clear()
+    # Фоновое изображение
+    bg = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
+    bg.clear()
+    bg.draw_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, color=(255, 255, 255), fill=True)
+    bg.draw_string_advanced(20, 20, 28, "Touch screen demo", color=(0, 0, 0))
+    bg.draw_string_advanced(20, 60, 20, "Tap the screen to see coordinates", color=(0, 0, 255))
 
-    # Читаем координаты касания с сенсорного экрана
-    # Возвращает список [x, y] или None если нет касания
-    point = Touch.read()
+    # OSD-слой для маркера касания
+    overlay = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
+    overlay.clear()
 
-    # Проверяем, было ли касание (point не пустой)
-    if point:
-        # Извлекаем координаты X и Y из списка
-        x, y = point[0], point[1]
-        
-        # Выводим координаты в консоль для отладки
-        print("Touch:", x, y)
-        
-        # Рисуем красный круг в точке касания
-        # x, y - центр круга
-        # 10 - радиус круга в пикселях
-        # color=(255, 0, 0) - красный цвет (R, G, B)
-        # thickness=2 - толщина линии обводки
-        img.draw_circle(x, y, 10, color=(255, 0, 0), thickness=2)
+    Display.init(Display.ST7701, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, to_ide=True)
+    MediaManager.init()
 
-    # Отображаем изображение на экране
-    Display.show_image(img)
-    
-    # Небольшая задержка для стабильной работы (50 мс)
-    time.sleep(0.05)
+    try:
+        while True:
+            os.exitpoint()
+
+            # Обновляем фоновый слой
+            Display.show_image(bg)
+
+            # Чистим overlay, чтобы показывать только текущее касание
+            overlay.clear()
+
+            points = tp.read(1)
+            if len(points):
+                pt = points[0]
+                print("Touch: x={}, y={}, event={}".format(pt.x, pt.y, pt.event))
+                overlay.draw_circle(pt.x, pt.y, 18, color=(255, 0, 0), thickness=4)
+                overlay.draw_string_advanced(20, 100, 22, "x={}, y={}".format(pt.x, pt.y), color=(0, 0, 0))
+                Display.show_image(overlay, layer=Display.LAYER_OSD2, alpha=180)
+
+            time.sleep(0.05)
+
+    except KeyboardInterrupt as e:
+        print("user stop:", e)
+    except BaseException as e:
+        print("Exception", e)
+
+    Display.deinit()
+    os.exitpoint(os.EXITPOINT_ENABLE_SLEEP)
+    time.sleep_ms(100)
+    MediaManager.deinit()
+
+
+if __name__ == "__main__":
+    os.exitpoint(os.EXITPOINT_ENABLE)
+    main()
