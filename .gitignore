@@ -3,11 +3,31 @@
 *.pyc
 __pycache__/
 
-# Logs
+# Logs and temporary files
 *.log
+*.tmp
+*.swp
 
 # Environment files
 .env
 .env.local
 *.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Python virtual environments
+venv/
+.venv/
+.env/
+
+# Build directories
+build/
+dist/
 ```
