@@ -1,75 +1,67 @@
 # ============================================
 # K230 Example
-# Автор: AIDevelopersMonster
-# Плата: Yahboom K230
-# GitHub https://github.com/AIDevelopersMonster/K230             
-#
-# Описание:
-# Пример рисования пальцем по сенсорному экрану.
-# Скрипт создаёт «рисующую» программу - при движении пальца
-# на экране остаются следы (жёлтые круги).
-#
-# Используется:
-# - Display (экран ST7701)
-# - Touch (сенсорный ввод)
-# - MediaManager (управление медиа)
-#
+# Рисование пальцем (исправленная версия)
 # ============================================
 
-# Импорт необходимых библиотек
-# media.display - управление дисплеем
-# media.media - инициализация медиа-менеджера
-# media.touch - работа с сенсорным экраном
-# image - создание и рисование изображений
-# time - задержки в цикле
+import time, os
+import image
+
 from media.display import *
 from media.media import *
-from media.touch import *
-import image, time
+from machine import TOUCH
 
-# Инициализация дисплея
-# Display.ST7701 - тип контроллера экрана
-# width=640, height=480 - разрешение экрана
-# osd_num=1 - количество слоёв OSD (On-Screen Display)
-# to_ide=True - передача изображения в IDE для отладки
-Display.init(Display.ST7701, width=640, height=480, osd_num=1, to_ide=True)
+DISPLAY_WIDTH = 640
+DISPLAY_HEIGHT = 480
 
-# Инициализация медиа-менеджера (необходимо для работы с медиа)
-MediaManager.init()
+tp = TOUCH(0)
 
-# Инициализация сенсорного экрана
-Touch.init()
 
-# Создаём объект изображения размером 640x480 пикселей
-# Формат цвета RGB565 - 16 бит на пиксель (экономия памяти)
-img = image.Image(640, 480, image.RGB565)
+def main():
+    print("touch draw demo")
 
-# Очищаем изображение при старте (заливаем чёрным цветом)
-# Это будет наш «холст» для рисования
-img.clear()
+    # фон
+    bg = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
+    bg.clear()
+    bg.draw_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, color=(255,255,255), fill=True)
 
-# Основной бесконечный цикл программы
-while True:
-    # Читаем координаты касания с сенсорного экрана
-    # Возвращает список [x, y] или None если нет касания
-    point = Touch.read()
+    # слой рисования
+    canvas = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
+    canvas.clear()
 
-    # Проверяем, было ли касание (point не пустой)
-    if point:
-        # Извлекаем координаты X и Y из списка
-        x, y = point[0], point[1]
-        
-        # Рисуем маленький жёлтый круг в точке касания
-        # x, y - центр круга
-        # 3 - радиус круга в пикселях (маленький для эффекта «кисти»)
-        # color=(255, 255, 0) - жёлтый цвет (R, G, B)
-        # thickness=2 - толщина линии обводки
-        img.draw_circle(x, y, 3, color=(255, 255, 0), thickness=2)
+    Display.init(Display.ST7701, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, to_ide=True)
+    MediaManager.init()
 
-    # Отображаем изображение на экране
-    # Важно: показываем то же самое изображение, не создавая новое
-    Display.show_image(img)
-    
-    # Небольшая задержка для стабильной работы (20 мс)
-    # Меньшая задержка делает рисование более плавным
-    time.sleep(0.02)
+    last_x = None
+    last_y = None
+
+    try:
+        while True:
+            os.exitpoint()
+
+            Display.show_image(bg)
+
+            points = tp.read(1)
+            if len(points):
+                pt = points[0]
+
+                if pt.event == 0 or pt.event == TOUCH.EVENT_DOWN or pt.event == TOUCH.EVENT_MOVE:
+                    if last_x is not None and last_y is not None and pt.event != 2:
+                        canvas.draw_line(last_x, last_y, pt.x, pt.y, color=(0,0,0), thickness=5)
+
+                    last_x = pt.x
+                    last_y = pt.y
+
+            Display.show_image(canvas, layer=Display.LAYER_OSD2, alpha=255)
+
+            time.sleep(0.02)
+
+    except KeyboardInterrupt:
+        pass
+
+    Display.deinit()
+    MediaManager.deinit()
+
+
+if __name__ == "__main__":
+    os.exitpoint(os.EXITPOINT_ENABLE)
+    main()
