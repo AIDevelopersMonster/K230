@@ -1,63 +1,127 @@
 # ============================================
 # K230 Example
-# Кнопка через touch (исправленная версия)
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230              
+#
+# Описание:
+# Пример создания интерактивной кнопки на сенсорном экране.
+# Скрипт рисует кнопку и реагирует на нажатие в её области,
+# отображая надпись "CLICK!" при успешном попадании.
+#
+# Используется:
+# - machine.TOUCH - для чтения координат касания
+# - media.display - для вывода изображения на экран
+# - image - для отрисовки кнопки и текста
+#
 # ============================================
 
-import time, os
+import time
+import os
 import image
 
 from media.display import *
 from media.media import *
 from machine import TOUCH
 
+# Размеры экрана в пикселях
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
 
+# Инициализация touch-контроллера
+# tp - объект для работы с сенсорным экраном
 tp = TOUCH(0)
 
 
 def main():
+    """
+    Основная функция программы с интерактивной кнопкой.
+    Работает в бесконечном цикле:
+    1. Рисует кнопку на экране (зелёный прямоугольник с надписью "BUTTON")
+    2. Проверяет координаты касания
+    3. Если касание произошло внутри кнопки - выводит сообщение "CLICK!"
+    """
     print("touch button demo")
 
+    # Создаём фоновое изображение (буфер) размером с экран
+    # Формат ARGB8888 обеспечивает высокое качество цветов
     bg = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
+    # Очищаем фон белым цветом
     bg.clear()
-    bg.draw_rectangle(0,0,DISPLAY_WIDTH,DISPLAY_HEIGHT,color=(255,255,255),fill=True)
+    # Рисуем белый прямоугольник на весь экран (фон)
+    bg.draw_rectangle(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT, color=(255, 255, 255), fill=True)
 
+    # Создаём дополнительный слой (overlay) для отображения сообщения о нажатии
+    # Этот слой будет накладываться поверх фона только когда кнопка нажата
     overlay = image.Image(DISPLAY_WIDTH, DISPLAY_HEIGHT, image.ARGB8888)
 
+    # Инициализируем дисплей с контроллером ST7701
+    # width и height должны соответствовать физическим размерам экрана
+    # to_ide=True позволяет отображать изображение в CanMV IDE
     Display.init(Display.ST7701, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, to_ide=True)
+    # Инициализируем медиа-менеджер для работы с изображениями
     MediaManager.init()
 
     try:
+        # Бесконечный цикл - основа работы с сенсорным экраном
         while True:
+            # Проверяем флаг выхода (для корректной остановки через IDE)
             os.exitpoint()
 
-            bg.draw_rectangle(200,180,240,120,color=(0,255,0),thickness=3)
-            bg.draw_string_advanced(250,230,24,"BUTTON",color=(0,0,0))
+            # Рисуем кнопку прямо на фоновом изображении
+            # draw_rectangle(x, y, ширина, высота, цвет, толщина)
+            # Кнопка расположена по координатам: x=200, y=180, ширина=240, высота=120
+            # color=(0,255,0) - зелёная рамка, thickness=3 - толщина рамки 3 пикселя
+            bg.draw_rectangle(200, 180, 240, 120, color=(0, 255, 0), thickness=3)
+            
+            # Добавляем текст "BUTTON" внутри кнопки
+            # draw_string_advanced(x, y, размер_шрифта, текст, цвет)
+            bg.draw_string_advanced(250, 230, 24, "BUTTON", color=(0, 0, 0))
 
+            # Показываем фоновое изображение с кнопкой на экране
             Display.show_image(bg)
 
+            # Очищаем overlay перед каждым кадром
+            # Это нужно, чтобы сообщение "CLICK!" появлялось только при нажатии
             overlay.clear()
 
+            # Читаем данные с touch-контроллера
+            # read(1) запрашивает данные о 1 точке касания
             points = tp.read(1)
+            
+            # Если есть точки касания (список не пустой)
             if len(points):
+                # Берём первую точку касания
                 pt = points[0]
 
+                # Проверяем, попало ли касание в область кнопки
+                # Кнопка занимает область: x от 200 до 440 (200+240), y от 180 до 300 (180+120)
+                # Условие: 200 < pt.x < 440 и 180 < pt.y < 300
                 if 200 < pt.x < 440 and 180 < pt.y < 300:
+                    # Касание внутри кнопки - выводим сообщение в консоль
                     print("Button pressed")
-                    overlay.draw_string_advanced(220,320,28,"CLICK!",color=(255,0,0))
+                    # Рисуем сообщение "CLICK!" красным цветом под кнопкой
+                    overlay.draw_string_advanced(220, 320, 28, "CLICK!", color=(255, 0, 0))
 
+            # Показываем overlay слой поверх основного изображения
+            # layer=Display.LAYER_OSD2 - слой поверх основного
+            # alpha=200 - полупрозрачность (0-255, где 255 полностью непрозрачный)
             Display.show_image(overlay, layer=Display.LAYER_OSD2, alpha=200)
 
+            # Небольшая задержка для снижения нагрузки на процессор
+            # 0.05 секунды = 50 миллисекунд
             time.sleep(0.05)
 
     except KeyboardInterrupt:
+        # Обработка прерывания пользователем (Ctrl+C)
         pass
 
+    # Корректное завершение работы: освобождаем ресурсы
     Display.deinit()
     MediaManager.deinit()
 
 
 if __name__ == "__main__":
+    # Настраиваем точку выхода для корректной работы с IDE
     os.exitpoint(os.EXITPOINT_ENABLE)
     main()
