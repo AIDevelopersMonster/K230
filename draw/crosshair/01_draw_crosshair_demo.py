@@ -1,6 +1,17 @@
 # ============================================
-# K230 Draw Crosshair Demo
-# Based on official PDF example
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                       
+#
+# Описание:
+# Демонстрация рисования прицела (крестиков) на экране.
+# Создаёт изображение с центральным крестом и дополнительными
+# крестиками, расположенными по кругу на разных расстояниях.
+#
+# Используется:
+# - YbRGB (дисплей)
+#
 # ============================================
 
 import time, os, math
@@ -8,42 +19,66 @@ import image
 from media.display import *
 from media.media import *
 
+# Размеры экрана
 WIDTH = 640
 HEIGHT = 480
 
+# Создаём пустое изображение нужного размера в формате ARGB8888
 img = image.Image(WIDTH, HEIGHT, image.ARGB8888)
+# Очищаем изображение (делаем его прозрачным/чёрным)
 img.clear()
+# Рисуем белый фон - прямоугольник на весь экран
 img.draw_rectangle(0, 0, WIDTH, HEIGHT, color=(255,255,255), fill=True)
 
+# Инициализируем дисплей ST7701 с нашими размерами
+# to_ide=True позволяет видеть изображение в IDE
 Display.init(Display.ST7701, width=WIDTH, height=HEIGHT, to_ide=True)
+# Инициализируем медиа-менеджер для работы с изображениями
 MediaManager.init()
 
 try:
-    # Center cross
+    # Рисуем центральный большой крест
+    # Координаты (320, 240) - центр экрана 640x480
+    # color=(0,191,255) - голубой цвет (R, G, B)
+    # size=40 - размер креста в пикселях
+    # thickness=3 - толщина линий
     img.draw_cross(320, 240, color=(0,191,255), size=40, thickness=3)
 
-    # Inner circle crosses
+    # Рисуем 8 крестиков по внутреннему кругу (радиус 50 пикселей)
     for i in range(8):
+        # Вычисляем угол для каждого крестика (360 градусов / 8 = 45 градусов)
         angle = i * (360 / 8)
+        # Вычисляем координаты X и Y используя тригонометрию
+        # math.cos и math.sin принимают угол в радианах, поэтому конвертируем
+        # 320 и 240 - центр экрана, от него откладываем расстояние 50 пикселей
         x = int(320 + 50 * math.cos(math.radians(angle)))
         y = int(240 + 50 * math.sin(math.radians(angle)))
+        # Рисуем крестик светло-голубым цветом
         img.draw_cross(x, y, color=(135,206,235), size=15, thickness=2)
 
-    # Outer crosses
+    # Рисуем 12 крестиков по внешнему кругу (радиус 80 пикселей)
     for i in range(12):
+        # Угол для каждого из 12 крестиков (360 / 12 = 30 градусов)
         angle = i * (360 / 12)
+        # Координаты на расстоянии 80 пикселей от центра
         x = int(320 + 80 * math.cos(math.radians(angle)))
         y = int(240 + 80 * math.sin(math.radians(angle)))
+        # Рисуем маленький крестик бледно-голубым цветом
         img.draw_cross(x, y, color=(173,216,230), size=10, thickness=1)
 
+    # Показываем готовое изображение на дисплее
     Display.show_image(img)
 
+    # Бесконечный цикл - держим изображение на экране
     while True:
         time.sleep(2)
 
 except Exception as e:
+    # Если произошла ошибка - выводим её в консоль
     print(e)
 
 finally:
+    # Освобождаем ресурсы дисплея и медиа-менеджера
+    # Это важно делать всегда после завершения работы
     Display.deinit()
     MediaManager.deinit()

@@ -1,5 +1,18 @@
 # ============================================
-# K230 Draw Crosshair + Camera
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                       
+#
+# Описание:
+# Рисование прицела (крестиков) поверх изображения с камеры.
+# Камера захватывает изображение в реальном времени,
+# затем на него добавляются крестики для прицеливания.
+#
+# Используется:
+# - YbRGB (дисплей)
+# - Sensor (камера)
+#
 # ============================================
 
 import uos as os
@@ -7,30 +20,55 @@ from media.sensor import *
 from media.display import *
 from media.media import *
 
+# Размеры экрана и камеры
 WIDTH = 640
 HEIGHT = 480
 
+# Создаём объект сенсора (камеры)
 sensor = Sensor()
+# Сбрасываем настройки сенсора к значениям по умолчанию
 sensor.reset()
+# Устанавливаем размер изображения (разрешение) для камеры
+# chn=CAM_CHN_ID_1 - используем первый канал камеры
 sensor.set_framesize(width=WIDTH, height=HEIGHT, chn=CAM_CHN_ID_1)
+# Устанавливаем формат пикселей RGB565 (16-битный цвет)
 sensor.set_pixformat(Sensor.RGB565, chn=CAM_CHN_ID_1)
 
+# Инициализируем дисплей ST7701 с нашими размерами
+# to_ide=True позволяет видеть изображение в IDE
 Display.init(Display.ST7701, width=WIDTH, height=HEIGHT, to_ide=True)
+# Инициализируем медиа-менеджер для работы с изображениями
 MediaManager.init()
 
+# Запускаем камеру - начинаем захват изображения
 sensor.run()
 
+# Основной бесконечный цикл программы
 while True:
+    # Проверяем точку выхода (например, нажатие кнопки прерывания)
+    # Это позволяет корректно остановить программу
     os.exitpoint()
+    
+    # Делаем снимок с камеры и получаем изображение
+    # chn=CAM_CHN_ID_1 - берём изображение с первого канала
     img = sensor.snapshot(chn=CAM_CHN_ID_1)
 
-    # Center crosshair
+    # Рисуем центральный прицел красного цвета
+    # WIDTH//2 и HEIGHT//2 - центр экрана (целочисленное деление)
+    # color=(255,0,0) - красный цвет (R, G, B)
+    # size=30 - размер креста
+    # thickness=2 - толщина линий
     img.draw_cross(WIDTH//2, HEIGHT//2, color=(255,0,0), size=30, thickness=2)
 
-    # Additional crosshair points
-    img.draw_cross(100,100, color=(0,255,0), size=15)
-    img.draw_cross(500,300, color=(0,255,0), size=15)
+    # Рисуем дополнительные точки прицеливания зелёного цвета
+    # Координаты (100, 100) - верхний левый угол
+    img.draw_cross(100, 100, color=(0,255,0), size=15)
+    # Координаты (500, 300) - правая часть экрана
+    img.draw_cross(500, 300, color=(0,255,0), size=15)
 
-    img.draw_string(10,10,"Draw Crosshair", color=(255,255,0))
+    # Добавляем текст в левый верхний угол
+    # color=(255,255,0) - жёлтый цвет текста
+    img.draw_string(10, 10, "Draw Crosshair", color=(255,255,0))
 
+    # Показываем обработанное изображение на дисплее
     Display.show_image(img)
