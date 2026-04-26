@@ -1,4 +1,21 @@
-# Detect only vertical line segments
+# ============================================================
+# Пример: поиск ТОЛЬКО вертикальных линий
+#
+# Что делает скрипт:
+# - открывает картинку vertical_lines.png
+# - находит линии
+# - оставляет только вертикальные
+# - рисует их красным
+#
+# Как пользоваться:
+# 1. Скопируйте папку img на SD-карту
+# 2. Проверьте путь IMAGE_PATH
+# 3. Запустите скрипт
+#
+# Если не работает:
+# - проверьте путь
+# - проверьте формат PNG
+# ============================================================
 
 import time, math, gc
 import image
@@ -7,6 +24,7 @@ from media.media import *
 
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
+
 IMAGE_PATH = "/sdcard/Graphics detection/Line segment detection/img/vertical_lines.png"
 ANGLE_TOLERANCE_DEG = 12
 
@@ -39,9 +57,11 @@ try:
 
     img.draw_string(5, 5, "Vertical: %d" % count, color=(255, 255, 0), scale=2)
     Display.show_image(img)
+
     print("Vertical lines:", count)
 
     while True:
         time.sleep_ms(100)
+
 finally:
     gc.collect()
