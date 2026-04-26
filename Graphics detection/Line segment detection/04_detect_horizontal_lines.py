@@ -1,5 +1,23 @@
-# Detect only horizontal line segments from img/horizontal_lines.png
-# Copy the img folder to the same path on the K230 SD card.
+# ============================================================
+# Пример: поиск ТОЛЬКО горизонтальных линий
+#
+# Что делает скрипт:
+# - открывает картинку horizontal_lines.png
+# - находит все линии
+# - оставляет только горизонтальные
+# - рисует их зелёным цветом
+#
+# Как пользоваться:
+# 1. Скопируйте папку img на SD-карту:
+#    /sdcard/Graphics detection/Line segment detection/img/
+# 2. Проверьте IMAGE_PATH
+# 3. Запустите скрипт
+#
+# Если не работает:
+# - проверьте путь к файлу
+# - проверьте что картинка существует
+# - используйте PNG 640x480
+# ============================================================
 
 import time, math, gc
 import image
@@ -8,11 +26,16 @@ from media.media import *
 
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
+
+# Путь к картинке
 IMAGE_PATH = "/sdcard/Graphics detection/Line segment detection/img/horizontal_lines.png"
+
+# Допуск угла
 ANGLE_TOLERANCE_DEG = 12
 
 
 def line_angle_deg(line_tuple):
+    """Вычисление угла линии"""
     x1, y1, x2, y2 = line_tuple[:4]
     angle = math.degrees(math.atan2(y2 - y1, x2 - x1))
     if angle < 0:
@@ -21,6 +44,7 @@ def line_angle_deg(line_tuple):
 
 
 def is_horizontal(line_tuple):
+    """Проверка: линия горизонтальная"""
     angle = line_angle_deg(line_tuple)
     return angle <= ANGLE_TOLERANCE_DEG or angle >= 180 - ANGLE_TOLERANCE_DEG
 
@@ -30,20 +54,25 @@ MediaManager.init()
 
 try:
     img = image.Image(IMAGE_PATH)
+
+    # Поиск линий
     lines = img.find_line_segments(merge_distance=15, max_theta_diff=10)
 
     count = 0
     for ln in lines:
         coords = ln.line()
+
         if is_horizontal(coords):
             img.draw_line(coords, color=(0, 255, 0), thickness=4)
             count += 1
 
     img.draw_string(5, 5, "Horizontal: %d" % count, color=(255, 255, 0), scale=2)
     Display.show_image(img)
+
     print("Horizontal lines:", count)
 
     while True:
         time.sleep_ms(100)
+
 finally:
     gc.collect()
