@@ -2,145 +2,76 @@
 # K230 Example
 # Автор: AIDevelopersMonster
 # Плата: Yahboom K230
-# GitHub https://github.com/AIDevelopersMonster/K230                                
+# GitHub https://github.com/AIDevelopersMonster/K230
 #
 # Описание:
 # Обнаружение кругов на тёмном фоне (белые круги на чёрном).
-# Скрипт захватывает изображение с камеры, применяет бинаризацию для увеличения контраста,
-# находит белые круги на чёрном фоне и отображает их на экране и в терминале.
-#
-# Используется:
-# - Sensor (камера) / Display (LCD-экран) / MediaManager
-#
+# Важно: круги ищем на копии изображения, а рисуем и выводим на LCD оригинальный кадр.
+# Это предотвращает чёрный экран после binary().
 # ============================================
-
-# Обнаружение кругов для тёмного фона (белые круги на чёрном)
 
 import time, os, sys
 from media.sensor import *
 from media.display import *
 from media.media import *
 
-# ============================================
-# НАСТРОЙКИ ПАРАМЕТРОВ
-# ============================================
-
-# Разрешение изображения с камеры (ширина x высота)
 PICTURE_WIDTH = 400
 PICTURE_HEIGHT = 240
-
-# Разрешение LCD-дисплея (ширина x высота)
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
-
-# Порог обнаружения кругов: чем выше значение, тем строже фильтр
-# Для тёмного фона можно использовать меньшее значение, чем для светлого
 CIRCLE_THRESHOLD = 3000
 
-# Переменные для хранения объекта камеры и таймера
 sensor = None
 clock = time.clock()
 
-# ============================================
-# ОСНОВНАЯ ПРОГРАММА
-# ============================================
-
 try:
-    # Инициализация камеры (Sensor)
-    # id=2 — идентификатор камеры на плате K230
     sensor = Sensor(id=2)
-    sensor.reset()  # Сброс настроек камеры
-    
-    # Установка разрешения изображения для основного канала камеры
+    sensor.reset()
     sensor.set_framesize(width=PICTURE_WIDTH, height=PICTURE_HEIGHT, chn=CAM_CHN_ID_0)
-    
-    # Установка формата пикселей: RGB565 (16-битный цвет)
     sensor.set_pixformat(Sensor.RGB565, chn=CAM_CHN_ID_0)
 
-    # Инициализация LCD-дисплея (ST7701 — контроллер экрана)
-    # to_ide=True позволяет работать с IDE для отладки
     Display.init(Display.ST7701, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, to_ide=True)
-    
-    # Инициализация медиа-менеджера для работы с изображениями
     MediaManager.init()
-    
-    # Запуск захвата изображения с камеры
     sensor.run()
 
-    # Вычисление смещения для центрирования изображения камеры на экране
-    # Изображение с камеры меньше экрана, поэтому центрируем его
     x_offset = int((DISPLAY_WIDTH - PICTURE_WIDTH) / 2)
     y_offset = int((DISPLAY_HEIGHT - PICTURE_HEIGHT) / 2)
 
-    # ============================================
-    # ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
-    # ============================================
     while True:
-        # Проверка точки выхода (для корректного завершения по Ctrl+C)
         os.exitpoint()
-        
-        # Обновление таймера для расчёта FPS (кадров в секунду)
         clock.tick()
 
-        # Получение текущего кадра с камеры
         img = sensor.snapshot(chn=CAM_CHN_ID_0)
 
-        # ============================================
-        # УВЕЛИЧЕНИЕ КОНТРАСТА ДЛЯ ТЁМНОГО ФОНА
-        # ============================================
-        # Бинаризация изображения: оставляем только яркие пиксели (200-255)
-        # Это помогает лучше выделить белые круги на чёрном фоне
-        img.binary([(200, 255)])
+        # Analyze copy only. Do not show this binary image on LCD.
+        find_img = img.copy()
+        find_img.binary([(200, 255)])
+        circles = find_img.find_circles(threshold=CIRCLE_THRESHOLD)
 
-        # Поиск кругов на изображении с заданным порогом
-        circles = img.find_circles(threshold=CIRCLE_THRESHOLD)
-
-        # Вывод начала отчёта об обнаружении кругов
         print("[Dark Mode Circle Detection]")
+        print("count:", len(circles))
 
-        # Обработка каждого найденного круга
         for i, c in enumerate(circles):
-            # Отрисовка контура круга белым цветом (RGB: 255, 255, 255), толщина 2 пикселя
-            img.draw_circle(c.circle(), color=(255, 255, 255), thickness=2)
-            
-            # Получение координат центра (x, y) и радиуса (r) круга
             x, y, r = c.circle()
-            
-            # Отрисовка креста в центре круга красным цветом (RGB: 255, 0, 0)
-            img.draw_cross(x, y, color=(255, 0, 0), size=6)
-            
-            # Вывод информации о круге в терминал
+            img.draw_circle(c.circle(), color=(40, 167, 225), thickness=3)
+            img.draw_cross(x, y, color=(255, 0, 0), size=6, thickness=2)
+            img.draw_string(max(0, x - r), max(0, y - r - 14), "C%d R%d" % (i + 1, r), color=(255, 255, 255), scale=1)
             print("Circle", i + 1, c)
 
-        # Вывод текущего значения FPS (кадров в секунду)
         print("FPS:", clock.fps())
+        print("[===========================]")
 
-        # Отображение количества кругов и FPS в левом верхнем углу изображения
-        img.draw_string(2, 2, "C:%d FPS:%.1f" % (len(circles), clock.fps()), color=(255,255,255), scale=1)
-        
-        # Вывод обработанного изображения на экран с учётом смещения для центрирования
+        img.draw_string(2, 2, "C:%d FPS:%.1f" % (len(circles), clock.fps()), color=(255, 255, 255), scale=1)
         Display.show_image(img, x=x_offset, y=y_offset)
 
 except KeyboardInterrupt as e:
-    # Обработка прерывания пользователем (Ctrl+C)
     print("User Stop:", e)
 except BaseException as e:
-    # Обработка других исключений
     print("Exception:", e)
 finally:
-    # ============================================
-    # ЗАВЕРШЕНИЕ РАБОТЫ И ОСВОБОЖДЕНИЕ РЕСУРСОВ
-    # ============================================
-    # Остановка камеры, если объект был создан
     if isinstance(sensor, Sensor):
         sensor.stop()
-    
-    # Деинициализация дисплея
     Display.deinit()
-    
-    # Включение режима сна для точки выхода
     os.exitpoint(os.EXITPOINT_ENABLE_SLEEP)
-    time.sleep_ms(100)  # Небольшая задержка перед завершением
-    
-    # Деинициализация медиа-менеджера
+    time.sleep_ms(100)
     MediaManager.deinit()
