@@ -1,31 +1,55 @@
-# Static image example for line segment detection (no camera required)
-# Demonstrates how to draw and detect lines on a synthetic image.
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                              
+#
+# Описание:
+# Пример работы с синтетическим изображением (без камеры).
+# Скрипт создаёт изображение в памяти, рисует на нём тестовые линии,
+# а затем находит и отображает найденные отрезки линий.
+# Полезен для изучения работы функции find_line_segments().
+#
+# Используется:
+# - YbUart / YbRGB / YbBuzzer / YbKey
+#
+# ============================================
 
 import image
 
+# Размер создаваемого изображения в пикселях
 WIDTH = 320
 HEIGHT = 240
 
+# Создаём новое изображение в формате RGB888 (24 бита на пиксель)
 img = image.Image(WIDTH, HEIGHT, image.RGB888)
-img.clear()
+img.clear()  # Очищаем изображение (заливаем чёрным цветом)
 
-# Draw some test lines
-img.draw_line((10, 10, 200, 10), color=(255, 255, 255), thickness=2)
-img.draw_line((20, 20, 200, 100), color=(255, 255, 255), thickness=2)
-img.draw_line((50, 200, 300, 100), color=(255, 255, 255), thickness=2)
+# Рисуем тестовые линии белого цвета для последующего обнаружения
+# Формат координат: (x1, y1, x2, y2) - начало и конец линии
+# color=(255, 255, 255) - белый цвет в формате RGB
+# thickness=2 - толщина линии в пикселях
+img.draw_line((10, 10, 200, 10), color=(255, 255, 255), thickness=2)   # Горизонтальная линия
+img.draw_line((20, 20, 200, 100), color=(255, 255, 255), thickness=2)   # Наклонная линия
+img.draw_line((50, 200, 300, 100), color=(255, 255, 255), thickness=2)  # Другая наклонная линия
 
-# Detect line segments
+# Ищем отрезки линий на изображении
+# merge_distance=10 - максимальное расстояние для объединения близких сегментов (в пикселях)
+# max_theta_diff=10 - максимальная разница углов для объединения сегментов (в градусах)
 lines = img.find_line_segments(merge_distance=10, max_theta_diff=10)
 
-# Draw results
+# Рисуем найденные линии красным цветом поверх исходного изображения
 for ln in lines:
+    # ln.line() возвращает кортеж координат (x1, y1, x2, y2)
     img.draw_line(ln.line(), color=(255, 0, 0), thickness=2)
 
+# Выводим количество найденных линий в консоль
 print("Detected lines:", len(lines))
 
-# If display available
+# Если дисплей доступен, показываем изображение на экране
 try:
     from media.display import *
     Display.show_image(img)
 except:
+    # Если дисплей не доступен, просто продолжаем работу
     pass
