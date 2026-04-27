@@ -1,65 +1,147 @@
-# Circle Detection LCD demo for Yahboom K230 / CanMV
-# Demo 1: black circle outlines on a white background.
-# Camera -> find_circles() -> draw detected circles -> LCD + terminal output.
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                                
+#
+# Описание:
+# Обнаружение кругов с помощью камеры и вывод результата на LCD-экран.
+# Скрипт захватывает изображение с камеры, находит круги (чёрные контуры на белом фоне)
+# и отображает их с подписями (номер круга и радиус) на экране и в терминале.
+#
+# Используется:
+# - Sensor (камера) / Display (LCD-экран) / MediaManager
+#
+# ============================================
+
+# Обнаружение кругов на LCD-дисплее для Yahboom K230 / CanMV
+# Демонстрация 1: чёрные контуры кругов на белом фоне.
+# Камера -> поиск кругов (find_circles) -> отрисовка найденных кругов -> вывод на LCD и в терминал.
 
 import time, os, sys
 from media.sensor import *
 from media.display import *
 from media.media import *
 
+# ============================================
+# НАСТРОЙКИ ПАРАМЕТРОВ
+# ============================================
+
+# Разрешение изображения с камеры (ширина x высота)
 PICTURE_WIDTH = 400
 PICTURE_HEIGHT = 240
+
+# Разрешение LCD-дисплея (ширина x высота)
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
 
+# Порог обнаружения кругов: чем выше значение, тем строже фильтр
+# Уменьшите, если круги не обнаруживаются; увеличьте, если много ложных срабатываний
 CIRCLE_THRESHOLD = 3500
+
+# Переменные для хранения объекта камеры и таймера
 sensor = None
 clock = time.clock()
 
+# ============================================
+# ОСНОВНАЯ ПРОГРАММА
+# ============================================
+
 try:
+    # Инициализация камеры (Sensor)
+    # id=2 — идентификатор камеры на плате K230
     sensor = Sensor(id=2)
-    sensor.reset()
+    sensor.reset()  # Сброс настроек камеры
+    
+    # Установка разрешения изображения для основного канала камеры
     sensor.set_framesize(width=PICTURE_WIDTH, height=PICTURE_HEIGHT, chn=CAM_CHN_ID_0)
+    
+    # Установка формата пикселей: RGB565 (16-битный цвет)
     sensor.set_pixformat(Sensor.RGB565, chn=CAM_CHN_ID_0)
 
+    # Инициализация LCD-дисплея (ST7701 — контроллер экрана)
+    # to_ide=True позволяет работать с IDE для отладки
     Display.init(Display.ST7701, width=DISPLAY_WIDTH, height=DISPLAY_HEIGHT, to_ide=True)
+    
+    # Инициализация медиа-менеджера для работы с изображениями
     MediaManager.init()
+    
+    # Запуск захвата изображения с камеры
     sensor.run()
 
+    # Вычисление смещения для центрирования изображения камеры на экране
+    # Изображение с камеры меньше экрана, поэтому центрируем его
     x_offset = int((DISPLAY_WIDTH - PICTURE_WIDTH) / 2)
     y_offset = int((DISPLAY_HEIGHT - PICTURE_HEIGHT) / 2)
 
+    # ============================================
+    # ГЛАВНЫЙ ЦИКЛ ОБРАБОТКИ
+    # ============================================
     while True:
+        # Проверка точки выхода (для корректного завершения по Ctrl+C)
         os.exitpoint()
+        
+        # Обновление таймера для расчёта FPS (кадров в секунду)
         clock.tick()
 
+        # Получение текущего кадра с камеры
         img = sensor.snapshot(chn=CAM_CHN_ID_0)
+        
+        # Поиск кругов на изображении с заданным порогом
         circles = img.find_circles(threshold=CIRCLE_THRESHOLD)
 
+        # Вывод начала отчёта об обнаружении кругов
         print("[Circle Detection Start]")
-        print("count:", len(circles))
+        print("count:", len(circles))  # Количество найденных кругов
 
+        # Обработка каждого найденного круга
         for i, c in enumerate(circles):
+            # Отрисовка контура круга голубым цветом (RGB: 40, 167, 225), толщина 3 пикселя
             img.draw_circle(c.circle(), color=(40, 167, 225), thickness=3)
+            
+            # Получение координат центра (x, y) и радиуса (r) круга
             x, y, r = c.circle()
+            
+            # Отрисовка креста в центре круга красным цветом (RGB: 255, 0, 0)
             img.draw_cross(x, y, color=(255, 0, 0), size=8, thickness=2)
+            
+            # Подпись круга: номер и радиус (например, "C1 R25")
+            # Текст рисуется рядом с кругом белым цветом
             img.draw_string(max(0, x - r), max(0, y - r - 14), "C%d R%d" % (i + 1, r), color=(255, 255, 255), scale=1)
+            
+            # Вывод информации о круге в терминал
             print("Circle", i + 1, c)
 
+        # Вывод текущего значения FPS (кадров в секунду)
         print("FPS:", clock.fps())
         print("[===========================]")
 
+        # Отображение количества кругов и FPS в левом верхнем углу изображения
         img.draw_string(2, 2, "CIRCLES:%d FPS:%.1f" % (len(circles), clock.fps()), color=(255, 255, 255), scale=1)
+        
+        # Вывод обработанного изображения на экран с учётом смещения для центрирования
         Display.show_image(img, x=x_offset, y=y_offset)
 
 except KeyboardInterrupt as e:
+    # Обработка прерывания пользователем (Ctrl+C)
     print("User Stop:", e)
 except BaseException as e:
+    # Обработка других исключений
     print("Exception:", e)
 finally:
+    # ============================================
+    # ЗАВЕРШЕНИЕ РАБОТЫ И ОСВОБОЖДЕНИЕ РЕСУРСОВ
+    # ============================================
+    # Остановка камеры, если объект был создан
     if isinstance(sensor, Sensor):
         sensor.stop()
+    
+    # Деинициализация дисплея
     Display.deinit()
+    
+    # Включение режима сна для точки выхода
     os.exitpoint(os.EXITPOINT_ENABLE_SLEEP)
-    time.sleep_ms(100)
+    time.sleep_ms(100)  # Небольшая задержка перед завершением
+    
+    # Деинициализация медиа-менеджера
     MediaManager.deinit()
