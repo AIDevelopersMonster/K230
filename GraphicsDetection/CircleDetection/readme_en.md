@@ -87,10 +87,6 @@ FPS: 30.5
 
 ## 📚 Additional Resources
 
-- [CanMV Documentation](https://canmv.io/)
-- [K230 GitHub Repository](https://github.com/AIDevelopersMonster/K230)
-- [Yahboom K230 Guide](https://wiki.yahboom.com/F1_K230/)
-
 ## 👨‍💻 Author
 
 **AIDevelopersMonster**  
