@@ -1,9 +1,46 @@
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                                   
+#
+# Описание:
+# Одновременное отслеживание нескольких цветов.
+# Скрипт ищет сразу несколько цветовых областей,
+# выделяет каждый цвет своим прямоугольником
+# и отображает результат на дисплее.
+#
+# Используется:
+# - Sensor (камера)
+# - Display (дисплей)
+# - MediaManager (управление медиа)
+#
+# ============================================
+
 # ============================================================
 # 02. Multi Color Recognition (несколько цветов)
 #
 # Что делает:
-# - ищет сразу несколько цветов
-# - выделяет каждый своим цветом
+# - ищет сразу несколько цветов;
+# - выделяет каждый своим цветом;
+# - отображает FPS.
+#
+# Как пользоваться:
+# 1. Откройте файл в CanMV IDE.
+# 2. Подключите K230 к компьютеру.
+# 3. Наведите камеру на объекты разных цветов.
+# 4. Наблюдайте за выделением каждого цвета.
+#
+# THRESHOLDS - список порогов LAB для каждого цвета:
+# - первый порог: красный
+# - второй порог: зелёный
+# - третий порог: синий
+#
+# Если цвет определяется плохо:
+# - улучшите освещение;
+# - уберите блики;
+# - настройте LAB-порог в CanMV Threshold Editor;
+# - добавьте или измените значения в THRESHOLDS.
 # ============================================================
 
 import time
@@ -11,31 +48,39 @@ from media.sensor import *
 from media.display import *
 from media.media import *
 
+# Пороги LAB для поиска цветов (L Min, L Max, A Min, A Max, B Min, B Max)
+# Каждый кортеж соответствует определённому цвету
 THRESHOLDS = [
-    (0, 66, 7, 127, 3, 127),
-    (42, 100, -128, -17, 6, 66),
-    (43, 99, -43, -4, -56, -7),
+    (0, 66, 7, 127, 3, 127),           # красный
+    (42, 100, -128, -17, 6, 66),       # зелёный
+    (43, 99, -43, -4, -56, -7),        # синий
 ]
 
+# Инициализация камеры
 sensor = Sensor()
-sensor.reset()
-sensor.set_framesize(width=640, height=480)
-sensor.set_pixformat(Sensor.RGB565)
+sensor.reset()                                          # Сброс настроек камеры
+sensor.set_framesize(width=640, height=480)            # Установка разрешения 640x480
+sensor.set_pixformat(Sensor.RGB565)                    # Формат пикселей RGB565
 
-Display.init(Display.ST7701, to_ide=True)
-MediaManager.init()
+# Инициализация дисплея
+Display.init(Display.ST7701, to_ide=True)              # Инициализация дисплея ST7701
+MediaManager.init()                                     # Инициализация менеджера медиа
 
-sensor.run()
-clock = time.clock()
+sensor.run()                                            # Запуск камеры
+clock = time.clock()                                    # Создаём объект для подсчёта FPS
 
+# Основной цикл программы
 while True:
-    clock.tick()
-    img = sensor.snapshot()
+    clock.tick()                                        # Обновляем счётчик времени для FPS
+    img = sensor.snapshot()                             # Получаем кадр с камеры
 
+    # Проходим по всем порогам цветов
     for threshold in THRESHOLDS:
+        # Ищем области с заданным цветом
         blobs = img.find_blobs([threshold])
+        # Для каждой найденной области рисуем прямоугольник
         for blob in blobs:
-            img.draw_rectangle(blob[0:4], color=(255,0,0), thickness=3)
+            img.draw_rectangle(blob[0:4], color=(255, 0, 0), thickness=3)
 
-    Display.show_image(img)
-    print("FPS:", clock.fps())
+    Display.show_image(img)                             # Показываем изображение на дисплее
+    print("FPS:", clock.fps())                          # Выводим FPS в консоль
