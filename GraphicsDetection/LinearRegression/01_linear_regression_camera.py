@@ -1,3 +1,21 @@
+# ============================================
+# K230 Example
+# Автор: AIDevelopersMonster
+# Плата: Yahboom K230
+# GitHub https://github.com/AIDevelopersMonster/K230                                 
+#
+# Описание:
+# Базовый пример использования линейной регрессии для поиска чёрной линии
+# на белом фоне с помощью камеры. Скрипт строит линию регрессии через
+# найденную область и отображает результат на экране.
+#
+# Используется:
+# - Sensor (камера)
+# - Display (экран)
+# - MediaManager (управление медиа)
+#
+# ============================================
+
 # ============================================================
 # 01. Linear Regression: базовый пример с камерой
 #
@@ -21,7 +39,11 @@ from media.sensor import *
 from media.display import *
 from media.media import *
 
+# Порог бинаризации: ищем тёмные пиксели (0-100 из 255)
+# Чем меньше значение, тем темнее должны быть пиксели для обнаружения
 THRESHOLD = (0, 100)
+
+# Размеры экрана и сенсора камеры
 DISPLAY_WIDTH = 640
 DISPLAY_HEIGHT = 480
 SENSOR_WIDTH = 640
@@ -29,54 +51,96 @@ SENSOR_HEIGHT = 480
 
 
 def init_sensor():
+    """
+    Инициализация камеры (сенсора).
+    
+    Возвращает:
+        sensor: объект камеры с настроенным разрешением и форматом
+    """
     sensor = Sensor()
-    sensor.reset()
+    sensor.reset()  # Сброс настроек камеры к заводским
+    # Установка разрешения изображения (ширина x высота)
     sensor.set_framesize(width=SENSOR_WIDTH, height=SENSOR_HEIGHT)
+    # Установка формата изображения в оттенки серого (GRAYSCALE)
+    # Это упрощает обработку, так как работаем только с яркостью
     sensor.set_pixformat(Sensor.GRAYSCALE)
     return sensor
 
 
 def init_display():
+    """
+    Инициализация дисплея и медиа-менеджера.
+    
+    Display.ST7701 - тип используемого экрана
+    to_ide=True - позволяет передавать изображение в IDE для отладки
+    """
     Display.init(Display.ST7701, to_ide=True)
-    MediaManager.init()
+    MediaManager.init()  # Инициализация менеджера медиа-ресурсов
 
 
 def main():
+    """
+    Основная функция программы.
+    
+    Запускает бесконечный цикл обработки кадров с камеры,
+    находит линию методом линейной регрессии и отображает результат.
+    """
     sensor = None
     try:
+        # Инициализация оборудования
         sensor = init_sensor()
         init_display()
-        sensor.run()
-        clock = time.clock()
+        sensor.run()  # Запуск потока данных с камеры
+        
+        clock = time.clock()  # Таймер для подсчёта FPS (кадров в секунду)
 
+        # Вычисляем смещение для центрирования изображения на экране
         x_offset = round((DISPLAY_WIDTH - SENSOR_WIDTH) / 2)
         y_offset = round((DISPLAY_HEIGHT - SENSOR_HEIGHT) / 2)
 
+        # Основной цикл обработки
         while True:
-            clock.tick()
-            img = sensor.snapshot()
+            clock.tick()  # Начало отсчёта времени для текущего кадра
+            img = sensor.snapshot()  # Получение текущего кадра с камеры
 
+            # Поиск линии методом линейной регрессии
+            # get_regression() ищет область с пикселями, подходящими под порог
+            # и строит наилучшую прямую линию через эту область
             line = img.get_regression([THRESHOLD])
+            
             if line:
+                # Если линия найдена - рисуем её на изображении
+                # color=127 - серый цвет линии (из 255)
+                # thickness=4 - толщина линии в пикселях
                 img.draw_line(line.line(), color=127, thickness=4)
+                
+                # Отображаем "магнитуду" - качество обнаружения линии
+                # Чем больше значение, тем лучше видна линия
                 img.draw_string(5, 5, "mag: %.2f" % line.magnitude(), color=255, scale=2)
                 print("line:", line, "mag:", line.magnitude())
             else:
+                # Если линия не найдена
                 img.draw_string(5, 5, "line: N/A", color=255, scale=2)
 
+            # Вывод изображения на экран со смещением для центрирования
             Display.show_image(img, x=x_offset, y=y_offset)
+            
+            # Вывод количества кадров в секунду (производительность)
             print("FPS:", clock.fps())
 
     except KeyboardInterrupt as e:
+        # Обработка остановки пользователем (Ctrl+C)
         print("Пользователь остановил скрипт:", e)
     except Exception as e:
+        # Обработка любых других ошибок
         print("Ошибка:", e)
     finally:
+        # Освобождение ресурсов при завершении работы
         if sensor:
-            sensor.stop()
-        Display.deinit()
-        MediaManager.deinit()
-        gc.collect()
+            sensor.stop()  # Остановка камеры
+        Display.deinit()  # Отключение дисплея
+        MediaManager.deinit()  # Отключение медиа-менеджера
+        gc.collect()  # Принудительный запуск сборщика мусора
 
 
 if __name__ == "__main__":
