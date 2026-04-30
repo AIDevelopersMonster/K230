@@ -9,10 +9,11 @@
 #
 # Что делает:
 # - читает LAB-порог из текстового файла;
-# - если файла нет, создает его со значением по умолчанию;
+# - если файл доступен для записи, создает его со значением по умолчанию;
+# - если файловая система недоступна, продолжает работу с порогом по умолчанию;
 # - считает объекты указанного цвета;
-# - записывает последний результат в файл;
-# - показывает, как безопасно работать с файлами на K230.
+# - записывает последний результат в файл, если запись доступна;
+# - показывает, как безопасно работать с файлами на K230/CanMV.
 # ============================================
 
 import time
@@ -25,9 +26,13 @@ from media.media import MediaManager
 SCREEN_WIDTH = 640
 SCREEN_HEIGHT = 480
 
-# Файлы создаются в текущей рабочей папке устройства/IDE.
-THRESHOLD_FILE = "object_threshold.txt"
-RESULT_FILE = "object_count_result.txt"
+# На K230 при запуске из IDE относительный путь может быть недоступен для записи
+# и open("file.txt", "w") может дать OSError: [Errno 22] EINVAL.
+# Поэтому сначала пробуем реальные точки монтирования, а если они недоступны,
+# работаем без записи файлов.
+FILE_DIR_CANDIDATES = ["/sdcard", "/data", "/flash", "/"]
+THRESHOLD_FILENAME = "object_threshold.txt"
+RESULT_FILENAME = "object_count_result.txt"
 
 DEFAULT_THRESHOLD = (0, 100, -7, 127, 10, 83)
 FONT_SIZE = 25
@@ -37,6 +42,13 @@ BOX_COLOR = (255, 255, 255)
 PIXELS_THRESHOLD = 50
 AREA_THRESHOLD = 50
 MERGE_BLOBS = True
+
+
+def join_path(directory, filename):
+    """Join directory and filename without depending on os.path."""
+    if directory == "/":
+        return "/" + filename
+    return directory + "/" + filename
 
 
 def file_exists(path):
@@ -62,9 +74,14 @@ def text_to_threshold(text):
 
 
 def write_text_file(path, text):
-    """Write text to file. Mode 'w' replaces old content."""
-    with open(path, "w") as f:
-        f.write(text)
+    """Write text to file. Returns True on success, False on error."""
+    try:
+        with open(path, "w") as f:
+            f.write(text)
+        return True
+    except OSError as e:
+        print("File write failed:", path, e)
+        return False
 
 
 def read_text_file(path):
@@ -73,27 +90,68 @@ def read_text_file(path):
         return f.read()
 
 
-def load_or_create_threshold():
+def find_writable_directory():
+    """Find a writable directory for demo files.
+
+    The test file is created and removed. If no directory is writable,
+    return None and the demo will continue without file output.
+    """
+    for directory in FILE_DIR_CANDIDATES:
+        try:
+            os.stat(directory)
+        except OSError:
+            continue
+
+        test_path = join_path(directory, "k230_write_test.tmp")
+        try:
+            with open(test_path, "w") as f:
+                f.write("test")
+            try:
+                os.remove(test_path)
+            except OSError:
+                pass
+            print("Writable directory:", directory)
+            return directory
+        except OSError as e:
+            print("Directory is not writable:", directory, e)
+
+    print("No writable directory found. File demo will run in read-only mode.")
+    return None
+
+
+def load_or_create_threshold(file_dir):
     """Read threshold from file or create file with default threshold."""
-    if not file_exists(THRESHOLD_FILE):
-        write_text_file(THRESHOLD_FILE, threshold_to_text(DEFAULT_THRESHOLD))
-        print("Created", THRESHOLD_FILE, "with default threshold")
-        return DEFAULT_THRESHOLD
+    if file_dir is None:
+        print("Using default threshold, file system is not writable")
+        return DEFAULT_THRESHOLD, None, None
+
+    threshold_path = join_path(file_dir, THRESHOLD_FILENAME)
+    result_path = join_path(file_dir, RESULT_FILENAME)
+
+    if not file_exists(threshold_path):
+        ok = write_text_file(threshold_path, threshold_to_text(DEFAULT_THRESHOLD))
+        if ok:
+            print("Created", threshold_path, "with default threshold")
+        else:
+            print("Cannot create threshold file, using default threshold")
+        return DEFAULT_THRESHOLD, threshold_path, result_path
 
     try:
-        text = read_text_file(THRESHOLD_FILE)
+        text = read_text_file(threshold_path)
         threshold = text_to_threshold(text)
         print("Loaded threshold:", threshold)
-        return threshold
+        return threshold, threshold_path, result_path
     except Exception as e:
         print("Cannot read threshold file, using default:", e)
-        return DEFAULT_THRESHOLD
+        return DEFAULT_THRESHOLD, threshold_path, result_path
 
 
-def save_count_result(count, fps):
-    """Write the latest recognition result to text file."""
+def save_count_result(result_path, count, fps):
+    """Write the latest recognition result to text file if path is available."""
+    if result_path is None:
+        return
     text = "objects=%d\nfps=%.3f\ntime_ms=%d\n" % (count, fps, time.ticks_ms())
-    write_text_file(RESULT_FILE, text)
+    write_text_file(result_path, text)
 
 
 def init_camera():
@@ -124,14 +182,18 @@ def process_frame(img, threshold):
     return blobs
 
 
-def draw_info(img, fps, count):
+def draw_info(img, fps, count, threshold_path):
     img.draw_string_advanced(0, 0, FONT_SIZE, "FPS: %.3f    Num: %d" % (fps, count), color=TEXT_COLOR)
-    img.draw_string_advanced(0, 35, 18, "threshold: " + THRESHOLD_FILE, color=TEXT_COLOR)
+    if threshold_path:
+        img.draw_string_advanced(0, 35, 18, "file: " + threshold_path, color=TEXT_COLOR)
+    else:
+        img.draw_string_advanced(0, 35, 18, "file write: disabled", color=TEXT_COLOR)
 
 
 def main():
     sensor = None
-    threshold = load_or_create_threshold()
+    file_dir = find_writable_directory()
+    threshold, threshold_path, result_path = load_or_create_threshold(file_dir)
     last_save = time.ticks_ms()
 
     try:
@@ -147,13 +209,13 @@ def main():
             fps = clock.fps()
             count = len(blobs)
 
-            draw_info(img, fps, count)
+            draw_info(img, fps, count, threshold_path)
             Display.show_image(img)
 
             # Записываем результат не каждый кадр, а примерно раз в секунду,
             # чтобы не делать слишком много операций записи.
             if time.ticks_diff(time.ticks_ms(), last_save) > 1000:
-                save_count_result(count, fps)
+                save_count_result(result_path, count, fps)
                 last_save = time.ticks_ms()
 
             print("objects:", count, "fps:", fps)
