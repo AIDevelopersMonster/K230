@@ -8,12 +8,51 @@ The examples follow the structure from the PDF **AI vision processing code struc
 
 | File | Purpose |
 | --- | --- |
-| `face_aivision_common.py` | Shared module: `FaceDetectionApp`, anchors loading, file read/write helpers, CSV log, result drawing. |
+| `../../libs/face_aivision_common.py` | Shared library module. Copy it to the K230 as `/sdcard/libs/face_aivision_common.py`. |
+| `face_aivision_common.py` | Local copy of the shared module for reading next to the lesson. For running `from libs...`, use the file from the repository `libs` folder. |
 | `01_face_detection_basic.py` | Basic example: camera, model, inference, and face rectangles on screen. |
 | `02_face_detection_file_io.py` | File I/O example: read settings from a file and write recognition results to files. |
 | `03_face_detection_external_call.py` | Shows the structure for calling an AI routine from another program through `exce_demo(pl)` and `exit_demo()`. |
 | `readme.md` | Russian instructions. |
 | `readme_en.md` | English instructions. |
+
+## Important: where to put the shared library file
+
+The examples import the shared module like this:
+
+```python
+from libs.face_aivision_common import create_face_detection_app, safe_deinit
+```
+
+Therefore, on the K230, the file must be here:
+
+```text
+/sdcard/libs/face_aivision_common.py
+```
+
+In this repository, the fresh version is here:
+
+```text
+libs/face_aivision_common.py
+```
+
+Copy it to the TF card folder `/sdcard/libs/`. If the file exists only in `FaceRecognition/AIvision/`, the import `from libs.face_aivision_common ...` will not find it.
+
+### If you use CanMV IDE
+
+The **Run** button usually starts the current `.py` file, but it does not always upload neighboring project files to the board. Therefore, copy the library to the TF card once before running the examples:
+
+```text
+/sdcard/libs/face_aivision_common.py
+```
+
+After that you can run:
+
+```text
+FaceRecognition/AIvision/01_face_detection_basic.py
+FaceRecognition/AIvision/02_face_detection_file_io.py
+FaceRecognition/AIvision/03_face_detection_external_call.py
+```
 
 ## Required files on the TF card
 
@@ -34,11 +73,12 @@ Then edit `KMODEL_PATH` and `ANCHORS_PATH` in that file.
 
 ## Quick start
 
-1. Copy `FaceRecognition/AIvision` to the K230 or open a `.py` file in CanMV IDE.
-2. Connect the Yahboom K230 Vision Module over USB.
-3. Run `01_face_detection_basic.py`.
-4. Point the camera at a face.
-5. A yellow rectangle should appear around the detected face.
+1. Copy `libs/face_aivision_common.py` from the repository to `/sdcard/libs/face_aivision_common.py` on the K230.
+2. Copy `FaceRecognition/AIvision` to the K230 or open a `.py` file in CanMV IDE.
+3. Connect the Yahboom K230 Vision Module over USB.
+4. Run `01_face_detection_basic.py`.
+5. Point the camera at a face.
+6. A yellow rectangle should appear around the detected face.
 
 ## AI pipeline structure
 
@@ -51,7 +91,7 @@ Sensor → Frame → AI → OSD → Display
 In code:
 
 ```python
-pl = PipeLine(rgb888p_size=[640, 360], display_size=[640, 480], display_mode="lcd")
+pl = PipeLine(rgb888p_size=[640, 480], display_size=[640, 480], display_mode="lcd")
 pl.create()
 
 face_det = create_face_detection_app(pl)
@@ -82,11 +122,24 @@ class FaceDetectionApp(AIBase):
 It follows the usual AI demo structure:
 
 1. `__init__()` — model path, model input size, anchors, thresholds.
-2. `config_preprocess()` — AI2D resize from the camera frame to `320x320` model input.
-3. `run()` — inherited from `AIBase`; runs preprocessing → inference → postprocessing.
-4. `postprocess()` — calls `aidemo.face_det_post_process()`.
-5. `draw_result()` — draws face rectangles on the OSD layer `pl.osd_img`.
-6. `deinit()` — releases model resources.
+2. `get_padding_param()` — calculates padding to keep the frame aspect ratio before resize.
+3. `config_preprocess()` — configures AI2D preprocessing: first `pad`, then `resize` to the `320x320` model input.
+4. `run()` — inherited from `AIBase`; runs preprocessing → inference → postprocessing.
+5. `postprocess()` — calls `aidemo.face_det_post_process()`.
+6. `draw_result()` — draws face rectangles on the OSD layer `pl.osd_img`.
+7. `deinit()` — releases model resources.
+
+### Why pad before resize matters
+
+For correct face rectangles, preprocessing must match the Yahboom manufacturer example:
+
+```python
+top, bottom, left, right = self.get_padding_param()
+self.ai2d.pad([0, 0, 0, 0, top, bottom, left, right], 0, [104, 117, 123])
+self.ai2d.resize(nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)
+```
+
+If the code does only `resize` without `pad`, the image aspect ratio may be distorted, and the rectangle can be drawn around only part of the face or shifted away from the face.
 
 ## Reading files on K230
 
@@ -191,16 +244,17 @@ This means the result is written at most once per second.
 1. Use good lighting.
 2. Keep the face large enough in the camera frame.
 3. Avoid covering the face with hands or objects.
-4. If FPS is low, reduce `rgb888p_size`.
+4. Use the same `rgb888p_size` and `display_size`, for example `[640, 480]`, so the rectangle does not shift on the LCD.
 5. If false detections appear, increase `CONFIDENCE_THRESHOLD`.
 6. If faces are not detected, try lowering `CONFIDENCE_THRESHOLD`, for example to `0.40`.
+7. If the rectangle is not around the face, make sure the board has the updated `/sdcard/libs/face_aivision_common.py`, not only the local copy next to the example.
 
 ## Calling the routine from another file
 
 `03_face_detection_external_call.py` demonstrates the structure where external code creates one `PipeLine`, and the AI routine uses it:
 
 ```python
-pl = PipeLine(rgb888p_size=[640, 360], display_size=[640, 480], display_mode="lcd")
+pl = PipeLine(rgb888p_size=[640, 480], display_size=[640, 480], display_mode="lcd")
 pl.create()
 exce_demo(pl)
 ```
