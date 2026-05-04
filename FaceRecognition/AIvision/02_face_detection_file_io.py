@@ -18,7 +18,7 @@
 from libs.PipeLine import PipeLine, ScopedTiming
 import time
 import gc
-
+from libs.face_aivision_common import create_face_detection_app, safe_deinit
 from face_aivision_common import (
     create_face_detection_app,
     safe_deinit,
