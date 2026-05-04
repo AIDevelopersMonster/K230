@@ -13,6 +13,9 @@
 # - writes the latest face detection result to face_last_result.txt;
 # - appends a history log to face_log.csv;
 # - keeps the same AI code structure as the basic demo.
+#
+# Required library on K230:
+# /sdcard/libs/face_aivision_common.py
 # ============================================
 
 from libs.PipeLine import PipeLine, ScopedTiming
@@ -70,7 +73,7 @@ def exce_demo(pl):
                 if elapsed > 0:
                     fps = 1000.0 / elapsed
 
-                face_det.draw_result(pl, dets, label="Face")
+                face_det.draw_result(pl, dets)
                 pl.show_image()
 
                 now = _ticks_ms()
@@ -97,7 +100,9 @@ def exit_demo():
 
 
 if __name__ == "__main__":
-    rgb888p_size = [640, 360]
+    # Use the same AI image size and display size.
+    # This keeps the face rectangle aligned with the camera image on the LCD.
+    rgb888p_size = [640, 480]
     display_size = [640, 480]
     display_mode = "lcd"
 
