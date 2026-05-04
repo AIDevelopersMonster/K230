@@ -8,13 +8,13 @@
 # 02_face_landmark_file_io.py
 #
 # Facial key point recognition with file read/write.
-# This example imports the basic demo classes and adds:
+# This example imports keypoint_common.py and adds:
 # - config file reading;
 # - latest result TXT writing;
 # - CSV log appending.
 #
-# Put 01_face_landmark_basic.py in the same folder when running this file
-# from the TF card. In CanMV IDE, upload both files to the same directory.
+# Copy keypoint_common.py to the same folder on the TF card:
+# /sdcard/FaceRecognition/KeyPointRecognition/keypoint_common.py
 # ============================================
 
 from libs.PipeLine import PipeLine, ScopedTiming
@@ -28,7 +28,7 @@ try:
 except Exception:
     pass
 
-from 01_face_landmark_basic import FaceLandMark, load_anchors
+from keypoint_common import FaceLandMark, load_anchors
 
 APP_DIR = "/sdcard/FaceRecognition/KeyPointRecognition"
 CONFIG_PATH = APP_DIR + "/keypoint_config.txt"
