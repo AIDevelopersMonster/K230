@@ -7,6 +7,9 @@
 # Copy this file to /sdcard/libs/face_aivision_common.py
 # and import it in examples as:
 # from libs.face_aivision_common import create_face_detection_app, safe_deinit
+#
+# The preprocessing and rectangle conversion intentionally follow the
+# Yahboom face detection example: pad -> resize -> inference -> postprocess.
 # ============================================
 
 from libs.PipeLine import ScopedTiming
@@ -230,9 +233,33 @@ class FaceDetectionApp(AIBase):
             np.uint8
         )
 
+    def get_padding_param(self):
+        """Calculate padding exactly as in the Yahboom face detection demo."""
+        dst_w = self.model_input_size[0]
+        dst_h = self.model_input_size[1]
+        ratio_w = dst_w / self.rgb888p_size[0]
+        ratio_h = dst_h / self.rgb888p_size[1]
+        ratio = min(ratio_w, ratio_h)
+
+        new_w = int(ratio * self.rgb888p_size[0])
+        new_h = int(ratio * self.rgb888p_size[1])
+
+        dw = (dst_w - new_w) / 2
+        dh = (dst_h - new_h) / 2
+
+        return (
+            int(round(0)),
+            int(round(dh * 2 + 0.1)),
+            int(round(0)),
+            int(round(dw * 2 - 0.1))
+        )
+
     def config_preprocess(self, input_image_size=None):
+        """Configure AI2D preprocessing: pad first, then resize."""
         with ScopedTiming("set preprocess config", self.debug_mode > 0):
             ai2d_input_size = input_image_size if input_image_size else self.rgb888p_size
+            top, bottom, left, right = self.get_padding_param()
+            self.ai2d.pad([0, 0, 0, 0, top, bottom, left, right], 0, [104, 117, 123])
             self.ai2d.resize(nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)
             self.ai2d.build(
                 [1, 3, ai2d_input_size[1], ai2d_input_size[0]],
@@ -249,18 +276,10 @@ class FaceDetectionApp(AIBase):
                 self.rgb888p_size,
                 results
             )
-            if len(post_ret) == 0:
-                return post_ret
-            return post_ret[0]
+            return post_ret[0] if post_ret else post_ret
 
-    def draw_result(self, pl, dets, label="Face"):
-        """Draw face rectangles exactly like the official face detection demo.
-
-        aidemo.face_det_post_process returns det[:4] as x, y, w, h.
-        The old version added extra label drawing and often used 640x360 AI input with
-        a 640x480 display, which could visually move the rectangle down. The demo now
-        uses matching 640x480 sizes by default and keeps only the rectangle drawing.
-        """
+    def draw_result(self, pl, dets):
+        """Draw face rectangles exactly like the Yahboom face detection demo."""
         with ScopedTiming("display_draw", self.debug_mode > 0):
             if dets:
                 pl.osd_img.clear()
