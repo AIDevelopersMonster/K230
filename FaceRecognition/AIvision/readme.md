@@ -8,12 +8,51 @@
 
 | Файл | Назначение |
 | --- | --- |
-| `face_aivision_common.py` | Общий модуль: `FaceDetectionApp`, загрузка anchors, чтение/запись файлов, CSV-лог, отрисовка результата. |
+| `../../libs/face_aivision_common.py` | Общий библиотечный модуль. Его нужно скопировать на K230 в `/sdcard/libs/face_aivision_common.py`. |
+| `face_aivision_common.py` | Локальная копия общего модуля для просмотра рядом с уроком. Для запуска через `from libs...` используйте файл из папки `libs`. |
 | `01_face_detection_basic.py` | Базовый пример: запуск камеры, модели, inference и рамки вокруг лиц. |
 | `02_face_detection_file_io.py` | Пример чтения настроек из файла и записи результата распознавания в файлы. |
 | `03_face_detection_external_call.py` | Пример структуры, когда AI-рутина вызывается из другого кода через `exce_demo(pl)` и `exit_demo()`. |
 | `readme.md` | Инструкция на русском. |
 | `readme_en.md` | English instructions. |
+
+## Важно: куда положить общий файл библиотеки
+
+Примеры импортируют общий модуль так:
+
+```python
+from libs.face_aivision_common import create_face_detection_app, safe_deinit
+```
+
+Поэтому на K230 файл должен лежать именно здесь:
+
+```text
+/sdcard/libs/face_aivision_common.py
+```
+
+В репозитории свежая версия файла находится здесь:
+
+```text
+libs/face_aivision_common.py
+```
+
+Скопируйте ее на TF-карту в папку `/sdcard/libs/`. Если оставить файл только в `FaceRecognition/AIvision/`, импорт `from libs.face_aivision_common ...` его не найдет.
+
+### Если используете CanMV IDE
+
+Кнопка **Run** обычно запускает текущий `.py` файл, но не всегда загружает на плату соседние файлы проекта. Поэтому перед запуском примеров нужно один раз вручную скопировать библиотеку на TF-карту:
+
+```text
+/sdcard/libs/face_aivision_common.py
+```
+
+После этого можно запускать:
+
+```text
+FaceRecognition/AIvision/01_face_detection_basic.py
+FaceRecognition/AIvision/02_face_detection_file_io.py
+FaceRecognition/AIvision/03_face_detection_external_call.py
+```
 
 ## Что нужно на TF-карте
 
@@ -34,11 +73,12 @@
 
 ## Быстрый старт
 
-1. Скопируйте папку `FaceRecognition/AIvision` на K230 или откройте нужный `.py` файл в CanMV IDE.
-2. Подключите Yahboom K230 Vision Module по USB.
-3. Запустите `01_face_detection_basic.py`.
-4. Наведите камеру на лицо.
-5. На экране должна появиться желтая рамка вокруг лица.
+1. Скопируйте `libs/face_aivision_common.py` из репозитория на K230 в `/sdcard/libs/face_aivision_common.py`.
+2. Скопируйте папку `FaceRecognition/AIvision` на K230 или откройте нужный `.py` файл в CanMV IDE.
+3. Подключите Yahboom K230 Vision Module по USB.
+4. Запустите `01_face_detection_basic.py`.
+5. Наведите камеру на лицо.
+6. На экране должна появиться желтая рамка вокруг лица.
 
 ## Как устроен AI-пайплайн
 
@@ -51,7 +91,7 @@ Sensor → Frame → AI → OSD → Display
 В коде это выглядит так:
 
 ```python
-pl = PipeLine(rgb888p_size=[640, 360], display_size=[640, 480], display_mode="lcd")
+pl = PipeLine(rgb888p_size=[640, 480], display_size=[640, 480], display_mode="lcd")
 pl.create()
 
 face_det = create_face_detection_app(pl)
@@ -82,11 +122,24 @@ class FaceDetectionApp(AIBase):
 Он повторяет типовую структуру AI-демо:
 
 1. `__init__()` — путь к `.kmodel`, входной размер модели, anchors, thresholds.
-2. `config_preprocess()` — настройка AI2D resize из кадра камеры в размер модели `320x320`.
-3. `run()` — наследуется от `AIBase` и выполняет preprocessing → inference → postprocess.
-4. `postprocess()` — вызывает `aidemo.face_det_post_process()`.
-5. `draw_result()` — рисует рамки лиц на OSD-слое `pl.osd_img`.
-6. `deinit()` — освобождает ресурсы модели.
+2. `get_padding_param()` — расчет padding для сохранения пропорций кадра перед resize.
+3. `config_preprocess()` — настройка AI2D preprocessing: сначала `pad`, затем `resize` в размер модели `320x320`.
+4. `run()` — наследуется от `AIBase` и выполняет preprocessing → inference → postprocess.
+5. `postprocess()` — вызывает `aidemo.face_det_post_process()`.
+6. `draw_result()` — рисует рамки лиц на OSD-слое `pl.osd_img`.
+7. `deinit()` — освобождает ресурсы модели.
+
+### Почему важен pad перед resize
+
+Для корректной рамки лица preprocessing должен совпадать с примером производителя Yahboom:
+
+```python
+top, bottom, left, right = self.get_padding_param()
+self.ai2d.pad([0, 0, 0, 0, top, bottom, left, right], 0, [104, 117, 123])
+self.ai2d.resize(nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)
+```
+
+Если сделать только `resize` без `pad`, изображение может быть искажено по пропорциям, и рамка будет рисоваться не вокруг всего лица, а только по части лица или со смещением.
 
 ## Чтение файлов на K230
 
@@ -191,16 +244,17 @@ WRITE_INTERVAL_MS=1000
 1. Используйте хорошее освещение.
 2. Держите лицо достаточно крупно в кадре.
 3. Не закрывайте лицо руками или предметами.
-4. Если FPS низкий, уменьшите разрешение `rgb888p_size`.
+4. Используйте одинаковые размеры `rgb888p_size` и `display_size`, например `[640, 480]`, чтобы рамка не смещалась на LCD.
 5. Если рамки появляются на ложных объектах, увеличьте `CONFIDENCE_THRESHOLD`.
 6. Если лицо не находится, уменьшите `CONFIDENCE_THRESHOLD`, например до `0.40`.
+7. Если рамка рисуется не вокруг лица, проверьте, что на плате обновлен именно `/sdcard/libs/face_aivision_common.py`, а не только локальная копия рядом с примером.
 
 ## Запуск из другого файла
 
 `03_face_detection_external_call.py` показывает структуру, когда внешний код создает один `PipeLine`, а AI-рутина только использует его:
 
 ```python
-pl = PipeLine(rgb888p_size=[640, 360], display_size=[640, 480], display_mode="lcd")
+pl = PipeLine(rgb888p_size=[640, 480], display_size=[640, 480], display_mode="lcd")
 pl.create()
 exce_demo(pl)
 ```
