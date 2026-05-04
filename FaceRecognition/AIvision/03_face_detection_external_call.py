@@ -12,6 +12,9 @@
 # - the AI routine is kept in a small class with start/stop methods;
 # - this is the same idea as exce_demo(pl) and exit_demo(), but wrapped
 #   so beginners can clearly see the lifecycle.
+#
+# Required library on K230:
+# /sdcard/libs/face_aivision_common.py
 # ============================================
 
 from libs.PipeLine import PipeLine, ScopedTiming
@@ -67,7 +70,9 @@ def exit_demo():
 
 
 def main():
-    rgb888p_size = [640, 360]
+    # Use the same AI image size and display size.
+    # This keeps the face rectangle aligned with the camera image on the LCD.
+    rgb888p_size = [640, 480]
     display_size = [640, 480]
     display_mode = "lcd"
 
