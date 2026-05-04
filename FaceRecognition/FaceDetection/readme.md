@@ -1,4 +1,4 @@
-# K230: FaceRecognition / FaceDetectition
+# K230: FaceRecognition / FaceDetection
 
 Эта папка содержит демонстрационные примеры для **Yahboom K230 Vision Module** по теме **Face Detection** — обнаружение лиц на изображении.
 
