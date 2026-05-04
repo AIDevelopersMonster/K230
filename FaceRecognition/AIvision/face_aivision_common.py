@@ -4,17 +4,15 @@
 # Board: Yahboom K230 Vision Module
 # GitHub: https://github.com/AIDevelopersMonster/K230
 #
-# This module follows the K230 AI demo structure:
-# Sensor -> Frame -> AI -> OSD -> Display
-# and contains:
-# - FaceDetectionApp based on AIBase;
-# - AI2D preprocessing configuration;
-# - postprocessing through aidemo.face_det_post_process();
-# - drawing results on the PipeLine OSD layer;
-# - simple text/CSV file read and write helpers.
+# Copy this file to /sdcard/libs/face_aivision_common.py
+# and import it in examples as:
+# from libs.face_aivision_common import create_face_detection_app, safe_deinit
+#
+# The preprocessing and rectangle conversion intentionally follow the
+# Yahboom face detection example: pad -> resize -> inference -> postprocess.
 # ============================================
 
-from libs.PipeLine import PipeLine, ScopedTiming
+from libs.PipeLine import ScopedTiming
 from libs.AIBase import AIBase
 from libs.AI2D import Ai2d
 from media.media import *
@@ -45,15 +43,10 @@ def align_up(value, align):
 
 
 def _split_path(path):
-    parts = []
-    for item in path.split("/"):
-        if item:
-            parts.append(item)
-    return parts
+    return [item for item in path.split("/") if item]
 
 
 def ensure_dir(path):
-    """Create a directory recursively if it does not exist."""
     if not path or path == "/":
         return True
     current = "/" if path.startswith("/") else ""
@@ -84,7 +77,6 @@ def file_exists(path):
 
 
 def write_text(path, text, mode="w"):
-    """Write text to a file. mode='w' replaces, mode='a' appends."""
     folder = path.rsplit("/", 1)[0]
     if folder:
         ensure_dir(folder)
@@ -93,7 +85,6 @@ def write_text(path, text, mode="w"):
 
 
 def read_text(path, default=""):
-    """Read a text file. Return default if the file is missing."""
     try:
         with open(path, "r") as f:
             return f.read()
@@ -109,7 +100,6 @@ def ensure_default_config():
 
 
 def read_config(path=CONFIG_PATH):
-    """Read KEY=VALUE settings from a text config file."""
     ensure_default_config()
     cfg = {}
     text = read_text(path, "")
@@ -156,7 +146,6 @@ def csv_safe(value):
 
 
 def append_csv(path, header, row):
-    """Append one CSV row. The header is written only once."""
     folder = path.rsplit("/", 1)[0]
     if folder:
         ensure_dir(folder)
@@ -174,7 +163,6 @@ def detection_count(dets):
 
 
 def get_best_detection(dets):
-    """Return the first detection and its score if available."""
     if not dets:
         return None, 0.0
     det = dets[0]
@@ -188,7 +176,6 @@ def get_best_detection(dets):
 
 
 def write_detection_files(dets, fps=0.0, result_path=LAST_RESULT_PATH, log_path=LOG_PATH):
-    """Write the latest face result and append a CSV log row."""
     ensure_dir(APP_DIR)
     now = ticks_ms_safe()
     count = detection_count(dets)
@@ -217,7 +204,6 @@ def write_detection_files(dets, fps=0.0, result_path=LAST_RESULT_PATH, log_path=
 
 
 def load_anchors(path=DEFAULT_ANCHORS_PATH, anchor_len=DEFAULT_ANCHOR_LEN, det_dim=DEFAULT_DET_DIM):
-    """Load face detection anchors from /sdcard/utils/prior_data_320.bin."""
     try:
         anchors = np.fromfile(path, dtype=np.float)
     except Exception:
@@ -226,11 +212,9 @@ def load_anchors(path=DEFAULT_ANCHORS_PATH, anchor_len=DEFAULT_ANCHOR_LEN, det_d
 
 
 class FaceDetectionApp(AIBase):
-    """Single-model face detection app based on AIBase."""
-
     def __init__(self, kmodel_path, model_input_size, anchors,
                  confidence_threshold=0.5, nms_threshold=0.2,
-                 rgb888p_size=[640, 360], display_size=[640, 480], debug_mode=0):
+                 rgb888p_size=[640, 480], display_size=[640, 480], debug_mode=0):
         super().__init__(kmodel_path, model_input_size, rgb888p_size, debug_mode)
         self.kmodel_path = kmodel_path
         self.model_input_size = model_input_size
@@ -249,10 +233,33 @@ class FaceDetectionApp(AIBase):
             np.uint8
         )
 
+    def get_padding_param(self):
+        """Calculate padding exactly as in the Yahboom face detection demo."""
+        dst_w = self.model_input_size[0]
+        dst_h = self.model_input_size[1]
+        ratio_w = dst_w / self.rgb888p_size[0]
+        ratio_h = dst_h / self.rgb888p_size[1]
+        ratio = min(ratio_w, ratio_h)
+
+        new_w = int(ratio * self.rgb888p_size[0])
+        new_h = int(ratio * self.rgb888p_size[1])
+
+        dw = (dst_w - new_w) / 2
+        dh = (dst_h - new_h) / 2
+
+        return (
+            int(round(0)),
+            int(round(dh * 2 + 0.1)),
+            int(round(0)),
+            int(round(dw * 2 - 0.1))
+        )
+
     def config_preprocess(self, input_image_size=None):
-        """Configure AI2D preprocessing: resize camera RGBP888 to model input."""
+        """Configure AI2D preprocessing: pad first, then resize."""
         with ScopedTiming("set preprocess config", self.debug_mode > 0):
             ai2d_input_size = input_image_size if input_image_size else self.rgb888p_size
+            top, bottom, left, right = self.get_padding_param()
+            self.ai2d.pad([0, 0, 0, 0, top, bottom, left, right], 0, [104, 117, 123])
             self.ai2d.resize(nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)
             self.ai2d.build(
                 [1, 3, ai2d_input_size[1], ai2d_input_size[0]],
@@ -260,7 +267,6 @@ class FaceDetectionApp(AIBase):
             )
 
     def postprocess(self, results):
-        """Convert model outputs to face rectangles using the K230 aidemo library."""
         with ScopedTiming("postprocess", self.debug_mode > 0):
             post_ret = aidemo.face_det_post_process(
                 self.confidence_threshold,
@@ -270,41 +276,25 @@ class FaceDetectionApp(AIBase):
                 self.rgb888p_size,
                 results
             )
-            if len(post_ret) == 0:
-                return post_ret
-            return post_ret[0]
+            return post_ret[0] if post_ret else post_ret
 
-    def draw_result(self, pl, dets, label="Face"):
-        """Draw face rectangles on the PipeLine OSD layer."""
+    def draw_result(self, pl, dets):
+        """Draw face rectangles exactly like the Yahboom face detection demo."""
         with ScopedTiming("display_draw", self.debug_mode > 0):
-            pl.osd_img.clear()
-            if not dets:
-                return
-            for det in dets:
-                x, y, w, h = map(lambda v: int(round(v, 0)), det[:4])
-                score = 0.0
-                try:
-                    if len(det) > 4:
-                        score = float(det[4])
-                except Exception:
-                    score = 0.0
-
-                x = x * self.display_size[0] // self.rgb888p_size[0]
-                y = y * self.display_size[1] // self.rgb888p_size[1]
-                w = w * self.display_size[0] // self.rgb888p_size[0]
-                h = h * self.display_size[1] // self.rgb888p_size[1]
-
-                pl.osd_img.draw_rectangle(x, y, w, h, color=(255, 255, 0, 255), thickness=2)
-                try:
-                    pl.osd_img.draw_string_advanced(x, max(0, y - 28), 24,
-                                                    "%s %.2f" % (label, score),
-                                                    color=(255, 255, 255, 255))
-                except Exception:
-                    pass
+            if dets:
+                pl.osd_img.clear()
+                for det in dets:
+                    x, y, w, h = map(lambda v: int(round(v, 0)), det[:4])
+                    x = x * self.display_size[0] // self.rgb888p_size[0]
+                    y = y * self.display_size[1] // self.rgb888p_size[1]
+                    w = w * self.display_size[0] // self.rgb888p_size[0]
+                    h = h * self.display_size[1] // self.rgb888p_size[1]
+                    pl.osd_img.draw_rectangle(x, y, w, h, color=(255, 255, 0, 255), thickness=2)
+            else:
+                pl.osd_img.clear()
 
 
 def create_face_detection_app(pl, cfg=None):
-    """Create and configure FaceDetectionApp from Pipeline and optional config."""
     if cfg is None:
         cfg = {}
     kmodel_path = cfg.get("KMODEL_PATH", DEFAULT_KMODEL_PATH)
