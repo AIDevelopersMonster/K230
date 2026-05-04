@@ -40,15 +40,10 @@ def align_up(value, align):
 
 
 def _split_path(path):
-    parts = []
-    for item in path.split("/"):
-        if item:
-            parts.append(item)
-    return parts
+    return [item for item in path.split("/") if item]
 
 
 def ensure_dir(path):
-    """Create a directory recursively if it does not exist."""
     if not path or path == "/":
         return True
     current = "/" if path.startswith("/") else ""
@@ -79,7 +74,6 @@ def file_exists(path):
 
 
 def write_text(path, text, mode="w"):
-    """Write text to a file. mode='w' replaces, mode='a' appends."""
     folder = path.rsplit("/", 1)[0]
     if folder:
         ensure_dir(folder)
@@ -88,7 +82,6 @@ def write_text(path, text, mode="w"):
 
 
 def read_text(path, default=""):
-    """Read a text file. Return default if the file is missing."""
     try:
         with open(path, "r") as f:
             return f.read()
@@ -104,7 +97,6 @@ def ensure_default_config():
 
 
 def read_config(path=CONFIG_PATH):
-    """Read KEY=VALUE settings from a text config file."""
     ensure_default_config()
     cfg = {}
     text = read_text(path, "")
@@ -151,7 +143,6 @@ def csv_safe(value):
 
 
 def append_csv(path, header, row):
-    """Append one CSV row. The header is written only once."""
     folder = path.rsplit("/", 1)[0]
     if folder:
         ensure_dir(folder)
@@ -169,7 +160,6 @@ def detection_count(dets):
 
 
 def get_best_detection(dets):
-    """Return the first detection and its score if available."""
     if not dets:
         return None, 0.0
     det = dets[0]
@@ -183,7 +173,6 @@ def get_best_detection(dets):
 
 
 def write_detection_files(dets, fps=0.0, result_path=LAST_RESULT_PATH, log_path=LOG_PATH):
-    """Write the latest face result and append a CSV log row."""
     ensure_dir(APP_DIR)
     now = ticks_ms_safe()
     count = detection_count(dets)
@@ -212,7 +201,6 @@ def write_detection_files(dets, fps=0.0, result_path=LAST_RESULT_PATH, log_path=
 
 
 def load_anchors(path=DEFAULT_ANCHORS_PATH, anchor_len=DEFAULT_ANCHOR_LEN, det_dim=DEFAULT_DET_DIM):
-    """Load face detection anchors from /sdcard/utils/prior_data_320.bin."""
     try:
         anchors = np.fromfile(path, dtype=np.float)
     except Exception:
@@ -221,8 +209,6 @@ def load_anchors(path=DEFAULT_ANCHORS_PATH, anchor_len=DEFAULT_ANCHOR_LEN, det_d
 
 
 class FaceDetectionApp(AIBase):
-    """Single-model face detection app based on AIBase."""
-
     def __init__(self, kmodel_path, model_input_size, anchors,
                  confidence_threshold=0.5, nms_threshold=0.2,
                  rgb888p_size=[640, 480], display_size=[640, 480], debug_mode=0):
@@ -245,7 +231,6 @@ class FaceDetectionApp(AIBase):
         )
 
     def config_preprocess(self, input_image_size=None):
-        """Configure AI2D preprocessing: resize camera RGBP888 to model input."""
         with ScopedTiming("set preprocess config", self.debug_mode > 0):
             ai2d_input_size = input_image_size if input_image_size else self.rgb888p_size
             self.ai2d.resize(nn.interp_method.tf_bilinear, nn.interp_mode.half_pixel)
@@ -255,7 +240,6 @@ class FaceDetectionApp(AIBase):
             )
 
     def postprocess(self, results):
-        """Convert model outputs to face rectangles using the K230 aidemo library."""
         with ScopedTiming("postprocess", self.debug_mode > 0):
             post_ret = aidemo.face_det_post_process(
                 self.confidence_threshold,
@@ -269,11 +253,13 @@ class FaceDetectionApp(AIBase):
                 return post_ret
             return post_ret[0]
 
-    def draw_result(self, pl, dets):
-        """Draw face rectangles on the PipeLine OSD layer.
+    def draw_result(self, pl, dets, label="Face"):
+        """Draw face rectangles exactly like the official face detection demo.
 
-        det[:4] from aidemo.face_det_post_process is x, y, w, h.
-        Keep rgb888p_size and display_size equal on the 640x480 LCD demo to avoid vertical offset.
+        aidemo.face_det_post_process returns det[:4] as x, y, w, h.
+        The old version added extra label drawing and often used 640x360 AI input with
+        a 640x480 display, which could visually move the rectangle down. The demo now
+        uses matching 640x480 sizes by default and keeps only the rectangle drawing.
         """
         with ScopedTiming("display_draw", self.debug_mode > 0):
             if dets:
@@ -290,7 +276,6 @@ class FaceDetectionApp(AIBase):
 
 
 def create_face_detection_app(pl, cfg=None):
-    """Create and configure FaceDetectionApp from Pipeline and optional config."""
     if cfg is None:
         cfg = {}
     kmodel_path = cfg.get("KMODEL_PATH", DEFAULT_KMODEL_PATH)
